@@ -21,6 +21,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "cdk:synth": "npm -w infra run synth",
     "cdk:diff": "npm -w infra run diff",
+    "web:build:export": "npm -w @human-growth/web run build:export",
+    "release": "npm run web:build:export && cd infra && npx cdk deploy --all --require-approval broadening",
     "prisma:generate": "npm -w @human-growth/api run prisma:generate",
     "prisma:migrate": "npm -w @human-growth/api run prisma:migrate",
     "prisma:seed": "npm -w @human-growth/api run prisma:seed"
