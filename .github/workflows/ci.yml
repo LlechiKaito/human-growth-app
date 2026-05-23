@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, feature/**, fix/**]
+  pull_request:
+    branches: [develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck:
+    name: Lint + Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --workspaces --include-workspace-root
+      - name: Generate Prisma Client
+        run: npm -w @human-growth/api run prisma:generate
+      - run: npm run typecheck --workspaces --if-present
+
+  api-tests:
+    name: API unit + integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: human_growth
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dev -d human_growth"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      API_PORT: 8080
+      API_LOG_LEVEL: warn
+      API_CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://dev:dev@localhost:5432/human_growth
+      AUTH_PROVIDER: local
+      AUTH_LOCAL_SECRET: ci-test-secret-with-enough-length-1234
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --workspaces --include-workspace-root
+      - name: Apply Prisma schema
+        run: npm -w @human-growth/api exec -- prisma db push --accept-data-loss
+      - name: Run tests
+        run: npm -w @human-growth/api test
+
+  e2e:
+    name: E2E (Playwright via docker compose)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start stack
+        run: docker compose up -d --build
+      - name: Wait for /api/health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8081/api/health > /dev/null; then
+              echo "API is up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to start"; docker compose logs --tail=50 api; exit 1
+      - name: Run E2E
+        run: docker compose --profile e2e run --rm e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          retention-days: 7
+      - name: Tear down
+        if: always()
+        run: docker compose --profile e2e down -v
+
+  cdk-synth:
+    name: CDK synth
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --workspaces --include-workspace-root
+      - name: Generate Prisma Client
+        run: npm -w @human-growth/api run prisma:generate
+      - name: CDK synth
+        run: npm -w infra run synth

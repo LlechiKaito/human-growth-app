@@ -22,15 +22,16 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   const token = header.slice('Bearer '.length).trim();
+  let user;
   try {
-    const user = await getAuthProvider().verify(token);
-    c.set('cognitoSub', user.sub);
-    c.set('userEmail', user.email);
-    await next();
+    user = await getAuthProvider().verify(token);
   } catch {
     return c.json(
       { code: ERROR_CODES.UNAUTHORIZED, message: ERROR_MESSAGES[ERROR_CODES.UNAUTHORIZED] },
       HTTP_STATUS.UNAUTHORIZED,
     );
   }
+  c.set('cognitoSub', user.sub);
+  c.set('userEmail', user.email);
+  return next();
 };

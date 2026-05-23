@@ -25,7 +25,7 @@ export const devRoutes = new Hono()
     if (env.NODE_ENV === 'production') {
       return c.json({ code: ERROR_CODES.NOT_FOUND, message: 'Not found' }, HTTP_STATUS.NOT_FOUND);
     }
-    await next();
+    return next();
   })
   .post('/quests', zValidator('json', createQuestSchema), async (c) => {
     const input = c.req.valid('json');
