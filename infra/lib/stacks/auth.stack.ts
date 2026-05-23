@@ -38,6 +38,7 @@ export class AuthStack extends Stack {
       authFlows: {
         userPassword: true,
         userSrp: true,
+        adminUserPassword: true,
       },
       generateSecret: false,
       accessTokenValidity: undefined,
