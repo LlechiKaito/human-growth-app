@@ -5,7 +5,8 @@
   "description": "RPG-style talent development app (POC)",
   "workspaces": [
     "apps/*",
-    "infra"
+    "infra",
+    "tests/e2e"
   ],
   "scripts": {
     "dev": "docker compose up",

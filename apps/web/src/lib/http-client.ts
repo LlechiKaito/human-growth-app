@@ -1,15 +1,12 @@
 import axios from 'axios';
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!baseURL) {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL is not set');
-}
+// 空文字 (相対 URL) がデフォルト: dev は Next.js の rewrite、prod は CloudFront 経由で /api/* を API に振る
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
 export const httpClient = axios.create({
   baseURL,
   timeout: 10000,
-  withCredentials: true,
+  withCredentials: false,
 });
 
 httpClient.interceptors.request.use((config) => {
