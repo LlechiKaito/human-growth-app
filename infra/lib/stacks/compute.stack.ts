@@ -2,13 +2,14 @@ import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
 import * as apprunner from 'aws-cdk-lib/aws-apprunner';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as ecr from 'aws-cdk-lib/aws-ecr';
+import type * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 
 interface ComputeStackProps extends StackProps {
   vpc: ec2.IVpc;
+  ecrRepository: ecr.IRepository;
   dbSecret: ISecret;
   appRunnerSecurityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -17,7 +18,7 @@ interface ComputeStackProps extends StackProps {
 
 /**
  * Compute Stack
- * ECR + App Runner + VPC Connector
+ * App Runner Service + VPC Connector (ECR は EcrStack で先に作成)
  * HTTPS は App Runner 組み込み (ALB 不要)
  */
 export class ComputeStack extends Stack {
@@ -26,12 +27,6 @@ export class ComputeStack extends Stack {
 
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
-
-    const repository = new ecr.Repository(this, 'ApiRepository', {
-      repositoryName: 'human-growth-api',
-      imageScanOnPush: true,
-      lifecycleRules: [{ maxImageCount: 10 }],
-    });
 
     const vpcConnector = new apprunner.CfnVpcConnector(this, 'VpcConnector', {
       vpcConnectorName: 'human-growth-vpc-connector',
@@ -61,12 +56,16 @@ export class ComputeStack extends Stack {
         authenticationConfiguration: { accessRoleArn: accessRole.roleArn },
         imageRepository: {
           imageRepositoryType: 'ECR',
-          imageIdentifier: `${repository.repositoryUri}:latest`,
+          imageIdentifier: `${props.ecrRepository.repositoryUri}:latest`,
           imageConfiguration: {
             port: '8080',
             runtimeEnvironmentVariables: [
               { name: 'NODE_ENV', value: 'production' },
               { name: 'API_PORT', value: '8080' },
+              { name: 'API_LOG_LEVEL', value: 'info' },
+              // POC では '*'。本番では CloudFront のドメイン (frontend デプロイ後) に絞る。
+              { name: 'API_CORS_ORIGIN', value: '*' },
+              { name: 'AUTH_PROVIDER', value: 'cognito' },
               { name: 'COGNITO_USER_POOL_ID', value: props.userPool.userPoolId },
               { name: 'COGNITO_CLIENT_ID', value: props.userPoolClient.userPoolClientId },
               { name: 'COGNITO_REGION', value: this.region },
@@ -101,6 +100,5 @@ export class ComputeStack extends Stack {
     this.serviceUrl = `https://${this.service.attrServiceUrl}`;
 
     new CfnOutput(this, 'ApiServiceUrl', { value: this.serviceUrl });
-    new CfnOutput(this, 'EcrRepositoryUri', { value: repository.repositoryUri });
   }
 }

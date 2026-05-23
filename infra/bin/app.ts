@@ -5,6 +5,7 @@ import { App, Tags } from 'aws-cdk-lib';
 import { AuthStack } from '../lib/stacks/auth.stack';
 import { ComputeStack } from '../lib/stacks/compute.stack';
 import { DatabaseStack } from '../lib/stacks/database.stack';
+import { EcrStack } from '../lib/stacks/ecr.stack';
 import { FrontendStack } from '../lib/stacks/frontend.stack';
 import { MonitoringStack } from '../lib/stacks/monitoring.stack';
 import { NetworkStack } from '../lib/stacks/network.stack';
@@ -39,9 +40,13 @@ Tags.of(database).add('Service', 'database');
 const auth = new AuthStack(app, `${prefix}-auth`, { env });
 Tags.of(auth).add('Service', 'auth');
 
+const ecr = new EcrStack(app, `${prefix}-ecr`, { env });
+Tags.of(ecr).add('Service', 'container-registry');
+
 const compute = new ComputeStack(app, `${prefix}-compute`, {
   env,
   vpc: network.vpc,
+  ecrRepository: ecr.repository,
   dbSecret: database.secret,
   appRunnerSecurityGroup: network.appRunnerSecurityGroup,
   userPool: auth.userPool,
