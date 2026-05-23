@@ -1,14 +1,26 @@
 import { API_PATHS } from '@/constants/api-paths';
 import { httpClient } from '@/lib/http-client';
 
+export type QuestDifficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EPIC';
+export type QuestStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+
 export interface QuestDto {
   id: string;
   title: string;
   description: string;
-  difficulty: 'EASY' | 'NORMAL' | 'HARD' | 'EPIC';
+  difficulty: QuestDifficulty;
   rewardXp: number;
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+  status: QuestStatus;
   assignedCharacterId: string | null;
+}
+
+export interface CompleteQuestResult {
+  quest: QuestDto;
+  gainedXp: number;
+  newExperiencePoint: number;
+  oldLevel: number;
+  newLevel: number;
+  leveledUp: boolean;
 }
 
 export const fetchQuests = async (): Promise<QuestDto[]> => {
@@ -16,7 +28,7 @@ export const fetchQuests = async (): Promise<QuestDto[]> => {
   return data;
 };
 
-export const completeQuest = async (questId: string): Promise<QuestDto> => {
-  const { data } = await httpClient.post<QuestDto>(API_PATHS.QUEST_COMPLETE(questId));
+export const completeQuest = async (questId: string): Promise<CompleteQuestResult> => {
+  const { data } = await httpClient.post<CompleteQuestResult>(API_PATHS.QUEST_COMPLETE(questId));
   return data;
 };
