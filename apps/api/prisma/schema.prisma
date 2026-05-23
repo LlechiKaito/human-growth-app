@@ -1,0 +1,140 @@
+// =============================================================================
+//  Human Growth App - Prisma Schema
+//  POC - スキルクエスト RPG
+//  人事評価システム連携を見据えた設計 (external_id, evaluations テーブル)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+//  Employee — 社員。HR システム連携のキー
+// -----------------------------------------------------------------------------
+model Employee {
+  id           String    @id @default(uuid())
+  externalId   String?   @unique @map("external_id")     // HR システム側の社員ID
+  cognitoSub   String    @unique @map("cognito_sub")      // Cognito の sub
+  email        String    @unique
+  displayName  String    @map("display_name")
+  department   String?
+  joinedAt     DateTime  @map("joined_at") @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  character    Character?
+  evaluations  Evaluation[]
+
+  @@map("employees")
+}
+
+// -----------------------------------------------------------------------------
+//  Character — RPG キャラクター。Employee 1:1
+// -----------------------------------------------------------------------------
+model Character {
+  id              String   @id @default(uuid())
+  employeeId      String   @unique @map("employee_id")
+  name            String
+  className       String   @map("class_name")             // 例: "Engineer", "Designer"
+  experiencePoint Int      @default(0) @map("experience_point")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  employee        Employee     @relation(fields: [employeeId], references: [id])
+  quests          Quest[]
+  characterSkills CharacterSkill[]
+
+  @@map("characters")
+}
+
+// -----------------------------------------------------------------------------
+//  Skill — スキルツリーのノード
+// -----------------------------------------------------------------------------
+model Skill {
+  id          String   @id @default(uuid())
+  code        String   @unique                            // 例: "frontend-react-basic"
+  name        String
+  description String
+  tier        Int      @default(1)                        // 1〜5 スキルツリーの階層
+  parentId    String?  @map("parent_id")                  // 前提スキル
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  parent          Skill?           @relation("SkillTree", fields: [parentId], references: [id])
+  children        Skill[]          @relation("SkillTree")
+  characterSkills CharacterSkill[]
+
+  @@map("skills")
+}
+
+model CharacterSkill {
+  characterId String   @map("character_id")
+  skillId     String   @map("skill_id")
+  acquiredAt  DateTime @default(now()) @map("acquired_at")
+
+  character Character @relation(fields: [characterId], references: [id])
+  skill     Skill     @relation(fields: [skillId], references: [id])
+
+  @@id([characterId, skillId])
+  @@map("character_skills")
+}
+
+// -----------------------------------------------------------------------------
+//  Quest — クエスト (業務タスク)
+// -----------------------------------------------------------------------------
+enum QuestDifficulty {
+  EASY
+  NORMAL
+  HARD
+  EPIC
+}
+
+enum QuestStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Quest {
+  id                   String           @id @default(uuid())
+  title                String
+  description          String
+  difficulty           QuestDifficulty  @default(NORMAL)
+  rewardXp             Int              @map("reward_xp")
+  status               QuestStatus      @default(OPEN)
+  assignedCharacterId  String?          @map("assigned_character_id")
+  completedAt          DateTime?        @map("completed_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  assignedCharacter Character? @relation(fields: [assignedCharacterId], references: [id])
+
+  @@index([assignedCharacterId])
+  @@index([status])
+  @@map("quests")
+}
+
+// -----------------------------------------------------------------------------
+//  Evaluation — 人事評価 (HR システム連携用、POC では雛形のみ)
+// -----------------------------------------------------------------------------
+model Evaluation {
+  id           String   @id @default(uuid())
+  employeeId   String   @map("employee_id")
+  externalId   String?  @unique @map("external_id")       // HR システム側の評価ID
+  period       String                                      // 例: "2026-Q1"
+  score        Int                                         // 1〜5
+  comment      String?
+  evaluatedAt  DateTime @map("evaluated_at")
+  syncedAt     DateTime @default(now()) @map("synced_at") // HR システムから同期した時刻
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([period])
+  @@map("evaluations")
+}

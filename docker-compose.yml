@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hg-postgres
+    environment:
+      POSTGRES_DB: human_growth
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - hg-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d human_growth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: dev
+    container_name: hg-api
+    environment:
+      NODE_ENV: development
+      API_PORT: 8080
+      API_LOG_LEVEL: debug
+      API_CORS_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://dev:dev@postgres:5432/human_growth
+      COGNITO_REGION: ap-northeast-1
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma db push --accept-data-loss && npm run dev"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      target: dev
+    container_name: hg-web
+    environment:
+      NODE_ENV: development
+      # 相対URLで /api/* を叩く。Next.js dev サーバがコンテナ内で api:8080 にプロキシ
+      NEXT_PUBLIC_API_BASE_URL: ""
+      API_PROXY_TARGET: http://api:8080
+      NEXT_PUBLIC_COGNITO_REGION: ap-northeast-1
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+
+  e2e:
+    profiles: ["e2e"]
+    build:
+      context: .
+      dockerfile: docker/e2e.Dockerfile
+      target: run
+    container_name: hg-e2e
+    environment:
+      E2E_WEB_BASE_URL: http://web:3000
+      E2E_API_BASE_URL: http://api:8080
+    volumes:
+      - ./tests/e2e/playwright-report:/workspace/tests/e2e/playwright-report
+      - ./tests/e2e/test-results:/workspace/tests/e2e/test-results
+    depends_on:
+      - api
+      - web
+
+volumes:
+  hg-pgdata:

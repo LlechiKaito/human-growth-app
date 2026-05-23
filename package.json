@@ -1,0 +1,35 @@
+{
+  "name": "human-growth-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RPG-style talent development app (POC)",
+  "workspaces": [
+    "apps/*",
+    "infra",
+    "tests/e2e"
+  ],
+  "scripts": {
+    "dev": "docker compose up",
+    "dev:down": "docker compose down",
+    "dev:logs": "docker compose logs -f",
+    "test": "npm run test --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspaces --if-present",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "test:e2e": "npm -w @human-growth/e2e run test",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "cdk:synth": "npm -w infra run synth",
+    "cdk:diff": "npm -w infra run diff",
+    "prisma:generate": "npm -w @human-growth/api run prisma:generate",
+    "prisma:migrate": "npm -w @human-growth/api run prisma:migrate",
+    "prisma:seed": "npm -w @human-growth/api run prisma:seed"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
