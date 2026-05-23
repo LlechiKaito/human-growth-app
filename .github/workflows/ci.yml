@@ -103,5 +103,7 @@ jobs:
       - run: npm install --workspaces --include-workspace-root
       - name: Generate Prisma Client
         run: npm -w @human-growth/api run prisma:generate
+      - name: Build Next.js static export (required by frontend.stack BucketDeployment)
+        run: npm run web:build:export
       - name: CDK synth
         run: npm -w infra run synth
