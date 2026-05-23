@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json --resolve-full-paths",
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
@@ -33,6 +33,7 @@
     "eslint": "^9.14.0",
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
+    "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
