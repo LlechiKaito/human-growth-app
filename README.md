@@ -7,6 +7,17 @@
 社員 = キャラクター、業務タスク = クエスト、スキル習得 = レベルアップ。
 人事評価システムとの連携を見据えたデータ設計。
 
+## ドキュメント
+
+| ドキュメント | 内容 |
+|---|---|
+| [`docs/setup.md`](docs/setup.md) | **ローカル開発セットアップ**(初めての人はまずこれ) |
+| [`docs/spec.md`](docs/spec.md) | **機能仕様**(ユーザーストーリー / 画面 / API / ドメインモデル / 受入条件) |
+| [`docs/architecture.md`](docs/architecture.md) | **アーキテクチャ**(構成図 / スタック構成 / コスト試算 / 設計判断) |
+| [`docs/data-model.md`](docs/data-model.md) | **データモデル**(ER 図 / HR 連携設計 / マイグレーション戦略) |
+| [`docs/deploy.md`](docs/deploy.md) | **デプロイ手順**(1 コマンドデプロイ + トラブルシューティング) |
+| [`docs/adr/`](docs/adr/) | **アーキテクチャ意思決定記録**(App Runner / 静的書き出し / コスト 0 構成) |
+
 ## 技術スタック
 
 | 領域 | 採用 |
@@ -14,10 +25,10 @@
 | Frontend | Next.js 14 (App Router, `output: 'export'`) + TypeScript + Tailwind + TanStack Query |
 | Backend | Hono on Node.js 20 + TypeScript + Prisma |
 | DB | PostgreSQL 16 |
-| Auth | Amazon Cognito (Email/Password) |
+| Auth | Amazon Cognito (Email/Password) + LocalAuthProvider 切替 |
 | 本番 Infra | S3 + CloudFront + App Runner + RDS PostgreSQL + Cognito |
 | IaC | AWS CDK (TypeScript) |
-| CI/CD | GitHub Actions + OIDC |
+| CI | GitHub Actions (lint+typecheck / unit+integration / E2E / cdk synth) |
 | Test | Vitest (unit / integration) + Playwright (E2E) |
 
 ## ディレクトリ構成
@@ -29,75 +40,64 @@
 │   └── api/      Hono (App Runner で動く)
 ├── infra/        AWS CDK (network/database/auth/compute/frontend/monitoring)
 ├── tests/e2e/    Playwright
-├── docker/       Dockerfile (api / web)
-├── docs/         architecture.md / data-model.md
+├── docker/       Dockerfile (api / web / e2e) + entrypoint
+├── docs/         setup / spec / architecture / data-model / deploy / adr
+├── .github/      CI workflows
 └── docker-compose.yml
 ```
 
-## ローカル開発
+## ローカル開発(最短)
 
-### 必要なもの
-- Docker / Docker Compose
-- Node.js 20.x (任意、コンテナ内で完結)
-
-### 起動
+詳細は [`docs/setup.md`](docs/setup.md)。
 
 ```bash
-cp .env.example .env
+npm install
 docker compose up -d
 ```
 
-- Web: http://localhost:**3001**
-- API: http://localhost:**8081**/api/health
-- PostgreSQL: localhost:**5433** (dev / dev / human_growth)
+- Web: http://localhost:3001
+- API: http://localhost:8081/api/health
+- PostgreSQL: localhost:5433 (dev / dev / human_growth)
 
-> ホスト側ポートは他プロジェクトと被らないようずらしてある (3000 → 3001, 8080 → 8081, 5432 → 5433)。
-> コンテナ間通信は標準ポート (3000, 8080, 5432) のままなのでアプリ側の設定変更は不要。
+> ホスト側ポートは他プロジェクトと被らないようずらしてある (3000→3001, 8080→8081, 5432→5433)。
 
-### マイグレーション + シード
+サインアップ → ダッシュボード → クエスト完了 → レベルアップ までブラウザでフロー可能。
 
-```bash
-docker compose exec api npm run prisma:migrate
-docker compose exec api npm run prisma:seed
-```
-
-### テスト
+## テスト
 
 ```bash
-# ユニット + インテグレーション
-docker compose exec api npm test
-docker compose exec web npm test
-
-# E2E (Playwright ヘッドレス)
-npm run test:e2e
+docker compose exec api npm test                       # unit + integration (33 tests)
+docker compose --profile e2e run --rm e2e              # E2E (Playwright, 6 specs)
+npm run typecheck --workspaces --if-present            # 全 workspace 型チェック
 ```
 
-### 停止
+## デプロイ(本番 AWS)
+
+詳細は [`docs/deploy.md`](docs/deploy.md)。
 
 ```bash
-docker compose down            # ボリュームは残す
-docker compose down -v         # DB ボリュームも消す
+npm run release
 ```
 
-## 本番アーキテクチャ
+これだけで:
+1. Next.js 静的書き出し
+2. CDK が全 6 スタックを deploy(DockerImageAsset で API イメージビルド + ECR push 自動)
+3. App Runner 起動時に `prisma db push` でマイグレーション自動実行
+4. S3 sync + CloudFront invalidation
 
-詳細は [docs/architecture.md](docs/architecture.md) を参照。
+**デプロイは人間が実行する方針**(`npm run release` は手動トリガ、CI は synth まで)。
+
+## 本番アーキテクチャ(POC 構成)
 
 ```
 User → CloudFront → /*     → S3 (Next.js 静的)
-                  → /api/* → App Runner (Hono) → RDS PostgreSQL
-                                              → Cognito
+                  → /api/* → App Runner (Hono, egress=DEFAULT)
+                              ├─ Cognito User Pool (AdminAuth)
+                              └─ RDS PostgreSQL (publiclyAccessible)
 ```
 
-## CDK
-
-```bash
-cd infra
-npm run synth      # CloudFormation テンプレ生成
-npm run diff       # 差分確認 (デプロイは人間)
-```
-
-**デプロイは AI が実行しない方針。** CDK の出力で差分確認のみ。
+POC は **追加コスト 0** にするため RDS を public 配置 + App Runner egress=DEFAULT。
+本番化時は VPC Endpoint for cognito-idp + Private RDS に切り替え。背景は [ADR-0003](docs/adr/0003-cost-zero-cognito.md)。
 
 ## ライセンス
 
