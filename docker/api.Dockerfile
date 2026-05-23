@@ -43,5 +43,7 @@ COPY --from=build /workspace/apps/api/dist ./dist
 COPY --from=build /workspace/apps/api/package.json ./
 COPY --from=build /workspace/apps/api/prisma ./prisma
 COPY --from=build /workspace/node_modules ./node_modules
+COPY docker/api-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]
