@@ -11,6 +11,7 @@ import { useLogout, useMe } from '@/features/auth/hooks/useAuth';
 const NAV_ITEMS = [
   { href: ROUTES.DASHBOARD, label: 'ダッシュボード' },
   { href: ROUTES.QUESTS, label: 'クエスト' },
+  { href: ROUTES.MY_CHARACTER, label: 'キャラクター' },
 ];
 
 export default function MainLayout({ children }: { children: ReactNode }) {

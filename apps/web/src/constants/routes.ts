@@ -4,5 +4,6 @@ export const ROUTES = {
   SIGNUP: '/signup',
   DASHBOARD: '/dashboard',
   QUESTS: '/quests',
+  MY_CHARACTER: '/characters/me',
   CHARACTER: (id: string) => `/characters/${id}`,
 } as const;

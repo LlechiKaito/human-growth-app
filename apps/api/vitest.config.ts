@@ -7,6 +7,12 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.{test,spec}.ts'],
     globals: false,
+    pool: 'forks',
+    poolOptions: {
+      forks: { singleFork: true },
+    },
+    fileParallelism: false,
+    sequence: { concurrent: false },
   },
   resolve: {
     alias: {
