@@ -35,6 +35,9 @@ const envSchema = z.object({
   COGNITO_USER_POOL_ID: z.string().min(1).optional(),
   COGNITO_CLIENT_ID: z.string().min(1).optional(),
   COGNITO_REGION: z.string().min(1).default('ap-northeast-1'),
+  // ローカル開発で admin として扱うメールアドレス (LocalAuthProvider のみ)
+  // 例: ADMIN_EMAILS=admin@example.com,boss@example.com
+  ADMIN_EMAILS: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

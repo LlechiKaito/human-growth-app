@@ -42,7 +42,8 @@ export const authRoutes = new Hono()
   })
   .get('/me', authMiddleware, async (c) => {
     const sub = c.get('cognitoSub');
+    const groups = c.get('userGroups');
     const usecase = new GetMeUseCase(employees());
-    const me = await usecase.execute(sub);
+    const me = await usecase.execute(sub, groups);
     return c.json(me, HTTP_STATUS.OK);
   });

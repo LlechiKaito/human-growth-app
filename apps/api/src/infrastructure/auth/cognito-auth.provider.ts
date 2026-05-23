@@ -116,9 +116,12 @@ export class CognitoAuthProvider implements AuthProvider {
         issuer: this.issuer,
         audience: this.config.clientId,
       });
+      const groupsClaim = payload['cognito:groups'];
+      const groups = Array.isArray(groupsClaim) ? (groupsClaim as string[]) : [];
       return {
         sub: payload.sub as string,
         email: payload.email as string,
+        groups,
       };
     } catch {
       throw new DomainError(ERROR_CODES.UNAUTHORIZED, 'Invalid Cognito token');

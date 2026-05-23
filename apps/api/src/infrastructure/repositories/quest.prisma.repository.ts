@@ -40,6 +40,21 @@ export class QuestPrismaRepository implements QuestRepository {
     return rows.map((row) => this.toEntity(row));
   }
 
+  async create(quest: Quest): Promise<Quest> {
+    const row = await this.prisma.quest.create({
+      data: {
+        id: quest.id,
+        title: quest.title,
+        description: quest.description,
+        difficulty: quest.difficulty,
+        rewardXp: quest.rewardXp.toNumber(),
+        status: quest.status,
+        assignedCharacterId: quest.assignedCharacterId,
+      },
+    });
+    return this.toEntity(row);
+  }
+
   async save(quest: Quest): Promise<Quest> {
     const row = await this.prisma.quest.update({
       where: { id: quest.id },
@@ -49,6 +64,24 @@ export class QuestPrismaRepository implements QuestRepository {
         completedAt: quest.status === 'COMPLETED' ? new Date() : null,
       },
     });
+    return this.toEntity(row);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.quest.delete({ where: { id } });
+  }
+
+  async updateMeta(
+    id: string,
+    fields: {
+      title?: string;
+      description?: string;
+      difficulty?: QuestDifficulty;
+      rewardXp?: number;
+      assignedCharacterId?: string | null;
+    },
+  ): Promise<Quest> {
+    const row = await this.prisma.quest.update({ where: { id }, data: fields });
     return this.toEntity(row);
   }
 

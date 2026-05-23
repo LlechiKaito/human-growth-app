@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import { env } from '@/config/env';
 
+import { adminRoutes } from '@/presentation/routes/admin.routes';
 import { authRoutes } from '@/presentation/routes/auth.routes';
 import { characterRoutes } from '@/presentation/routes/characters.routes';
 import { devRoutes } from '@/presentation/routes/dev.routes';
@@ -12,7 +13,8 @@ const base = new Hono()
   .route('/health', healthRoutes)
   .route('/auth', authRoutes)
   .route('/characters', characterRoutes)
-  .route('/quests', questRoutes);
+  .route('/quests', questRoutes)
+  .route('/admin', adminRoutes);
 
 export const routes =
   env.NODE_ENV === 'production' ? base : base.route('/_dev', devRoutes);

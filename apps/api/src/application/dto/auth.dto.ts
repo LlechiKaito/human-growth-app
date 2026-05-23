@@ -20,6 +20,7 @@ export interface AuthTokens {
 export interface AuthenticatedUser {
   sub: string;
   email: string;
+  groups: string[];
 }
 
 export interface MeResponse {
@@ -27,4 +28,7 @@ export interface MeResponse {
   email: string;
   displayName: string;
   department: string | null;
+  isAdmin: boolean;
 }
+
+export const ADMINS_GROUP = 'admins';

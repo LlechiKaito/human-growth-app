@@ -14,10 +14,16 @@ const NAV_ITEMS = [
   { href: ROUTES.MY_CHARACTER, label: 'キャラクター' },
 ];
 
+const ADMIN_NAV_ITEMS = [
+  { href: ROUTES.ADMIN_QUESTS, label: '管理 (クエスト)' },
+];
+
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useMe();
   const logout = useLogout();
+  const isAdmin = me.data?.isAdmin ?? false;
+  const navItems = isAdmin ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   return (
     <AuthGuard>
@@ -28,7 +34,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               Skill Quest
             </Link>
             <nav className="flex gap-4 text-sm">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -37,6 +43,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                       ? 'text-rpg-accent'
                       : 'text-gray-300 hover:text-white'
                   }
+                  data-testid={`nav-${item.href}`}
                 >
                   {item.label}
                 </Link>
