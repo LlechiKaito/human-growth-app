@@ -18,15 +18,27 @@ const env = {
   region: process.env.CDK_DEFAULT_REGION ?? 'ap-northeast-1',
 };
 
+// プロジェクト全体に付与する必須タグ (コスト配賦・運用識別のため)
+// Tags.of(app) で配下の全スタック・全リソースに自動伝播する
+Tags.of(app).add('Project', projectName);
+Tags.of(app).add('Environment', environment);
+Tags.of(app).add('ManagedBy', 'CDK');
+
 const prefix = `${projectName}-${environment}`;
 
 const network = new NetworkStack(app, `${prefix}-network`, { env });
+Tags.of(network).add('Service', 'network');
+
 const database = new DatabaseStack(app, `${prefix}-database`, {
   env,
   vpc: network.vpc,
   databaseSecurityGroup: network.databaseSecurityGroup,
 });
+Tags.of(database).add('Service', 'database');
+
 const auth = new AuthStack(app, `${prefix}-auth`, { env });
+Tags.of(auth).add('Service', 'auth');
+
 const compute = new ComputeStack(app, `${prefix}-compute`, {
   env,
   vpc: network.vpc,
@@ -35,20 +47,18 @@ const compute = new ComputeStack(app, `${prefix}-compute`, {
   userPool: auth.userPool,
   userPoolClient: auth.userPoolClient,
 });
+Tags.of(compute).add('Service', 'compute');
+
 const frontend = new FrontendStack(app, `${prefix}-frontend`, {
   env,
   apiServiceUrl: compute.serviceUrl,
 });
-new MonitoringStack(app, `${prefix}-monitoring`, {
+Tags.of(frontend).add('Service', 'frontend');
+
+const monitoring = new MonitoringStack(app, `${prefix}-monitoring`, {
   env,
   apiService: compute.service,
   database: database.instance,
   distribution: frontend.distribution,
 });
-
-const stacks = [network, database, auth, compute, frontend];
-for (const stack of stacks) {
-  Tags.of(stack).add('Project', projectName);
-  Tags.of(stack).add('Environment', environment);
-  Tags.of(stack).add('ManagedBy', 'CDK');
-}
+Tags.of(monitoring).add('Service', 'monitoring');

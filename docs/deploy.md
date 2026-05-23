@@ -1,125 +1,286 @@
-# Deploy
+# Deploy — Human Growth App
 
-> AI はデプロイコマンドを実行しない。本書は人間がデプロイする際の手順書。
+> **AI はデプロイコマンドを実行しない方針**。本書は人間がデプロイする際の手順書。
 
-## 前提条件
+## 構成概要
 
-- AWS CLI が設定済み (`aws sts get-caller-identity` が通る)
-- AWS CDK CLI: `npm i -g aws-cdk@^2.165` または `npx cdk` を利用
-- AWS CDK Bootstrap が実行済み: `npx cdk bootstrap`
-- リージョン: `ap-northeast-1` (東京) 推奨
+| スタック名 | 内容 | 月額コスト目安 | 依存 |
+|---|---|---|---|
+| `human-growth-dev-network` | VPC / Subnet / SG | $0 | なし |
+| `human-growth-dev-database` | RDS PostgreSQL t4g.micro + Secrets Manager | ~$18 | network |
+| `human-growth-dev-auth` | **Cognito User Pool + Client** | $0 (50k MAU まで無料) | なし |
+| `human-growth-dev-compute` | ECR + App Runner + VPC Connector | ~$17 | network, database, auth |
+| `human-growth-dev-frontend` | S3 + CloudFront | ~$2 | compute |
+| `human-growth-dev-monitoring` | CloudWatch Dashboard + Alarm | ~$3 | database, compute, frontend |
 
-## SSM パラメータ / Secrets の事前設定
+**全リソースに自動で付与されるタグ** (コスト配賦用):
 
-POC では自動生成で済む(Cognito / RDS Secrets Manager)。
-本番運用時は以下を **ユーザーが** 設定:
+| タグキー | 値 (例) | 用途 |
+|---|---|---|
+| `Project` | `human-growth` | プロジェクト単位の合計コスト |
+| `Environment` | `dev` / `prod` | 環境別コスト |
+| `ManagedBy` | `CDK` | IaC 管理の識別 |
+| `Service` | `auth` / `compute` / `database` 等 | サブシステム別の内訳 |
 
-| パラメータ | 用途 |
-|---|---|
-| `/human-growth/<env>/cognito/saml-metadata-url` | 企業SSO 連携時 (将来) |
-| `/human-growth/<env>/route53/hosted-zone-id` | 独自ドメイン適用時 |
-| `/human-growth/<env>/cloudfront/acm-cert-arn` | us-east-1 の証明書 ARN |
+→ Cost Explorer で `Project = human-growth` でフィルタすればこのシステムの月額が一目。
+さらに `Service` でブレイクダウンするとどのリソースが食ってるか分かる。
 
-設定例 (人間が実行):
-```
-aws ssm put-parameter --name /human-growth/dev/route53/hosted-zone-id --value Z1XXXXX --type String
-```
+---
 
-## デプロイ手順
-
-### 1. 差分確認
-
-```
-cd infra && npx cdk diff
-```
-
-### 2. 全スタック一括デプロイ
+## 前提条件 (初回のみ)
 
 ```
-cd infra && npx cdk deploy --all --require-approval broadening
+# 1. AWS CLI が設定済み
+aws sts get-caller-identity
+
+# 2. CDK CLI (グローバル or npx で OK)
+npm i -g aws-cdk@^2.165
+# or 各コマンドに npx を付ける
+
+# 3. CDK Bootstrap (アカウント x リージョンで1度だけ)
+cd infra && npx cdk bootstrap aws://<ACCOUNT_ID>/ap-northeast-1
 ```
 
-スタック順序: `network` → `database` / `auth` → `compute` → `frontend` → `monitoring`
+`<ACCOUNT_ID>` は `aws sts get-caller-identity --query Account --output text` で取得。
 
-### 3. デプロイ後の確認
+---
 
-```
-# App Runner サービス URL を取得
-aws cloudformation describe-stacks --stack-name human-growth-dev-compute --query 'Stacks[0].Outputs'
+## Cognito だけ先にデプロイ (推奨スタート)
 
-# CloudFront ドメインを取得
-aws cloudformation describe-stacks --stack-name human-growth-dev-frontend --query 'Stacks[0].Outputs'
-
-# 動作確認 (5〜10分後)
-curl https://<APP_RUNNER_URL>/api/health
-curl https://<CLOUDFRONT_DOMAIN>/
-```
-
-### 4. フロントエンドのデプロイ (静的書き出し → S3)
+Cognito は他のリソースに依存しないので、まず単独でデプロイして動作確認するのが安全。
 
 ```
-# Next.js を静的書き出し
-cd apps/web && npm run build
-
-# S3 に sync
-aws s3 sync apps/web/out s3://<WEB_BUCKET_NAME>/ --delete
-
-# CloudFront キャッシュ無効化
-aws cloudfront create-invalidation --distribution-id <DISTRIBUTION_ID> --paths "/*"
+cd infra
+npx cdk diff human-growth-dev-auth
+npx cdk deploy human-growth-dev-auth
 ```
 
-### 5. API イメージのデプロイ (ECR → App Runner 自動デプロイ)
+### 出力される情報
+
+デプロイ完了時にこんな表示が出る:
+
+```
+Outputs:
+human-growth-dev-auth.UserPoolId = ap-northeast-1_XXXXXXXXX
+human-growth-dev-auth.UserPoolClientId = xxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+または後から取得:
+```
+aws cloudformation describe-stacks --stack-name human-growth-dev-auth --query 'Stacks[0].Outputs' --output table
+```
+
+### タグの確認
+
+```
+aws cognito-idp list-tags-for-resource \
+  --resource-arn arn:aws:cognito-idp:ap-northeast-1:<ACCOUNT_ID>:userpool/<UserPoolId>
+```
+
+→ `Project`, `Environment`, `ManagedBy`, `Service` の4タグが付いているはず。
+
+### コンソールで確認
+
+AWS マネジメントコンソール → Cognito → User Pools → `human-growth-users` を開く。
+タブから「Users」「App integration」「Sign-in experience」を見られる。
+
+---
+
+## 全スタック一括デプロイ
+
+Cognito だけで満足したら、他もまとめてデプロイ:
+
+```
+cd infra
+npx cdk diff
+npx cdk deploy --all --require-approval broadening
+```
+
+依存順 (`network` → `database` / `auth` → `compute` → `frontend` → `monitoring`) で自動的に進行。
+所要時間: RDS が一番遅い (~10分)。全体で 15〜20 分。
+
+### デプロイ後の主な Output
+
+```
+aws cloudformation describe-stacks \
+  --stack-name human-growth-dev-compute \
+  --query 'Stacks[0].Outputs'
+# → ApiServiceUrl: https://xxxxxxx.ap-northeast-1.awsapprunner.com
+# → EcrRepositoryUri: <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/human-growth-api
+
+aws cloudformation describe-stacks \
+  --stack-name human-growth-dev-frontend \
+  --query 'Stacks[0].Outputs'
+# → DistributionDomain: https://xxxxxxx.cloudfront.net
+# → WebBucketName: human-growth-dev-frontend-webbucket-xxxx
+```
+
+---
+
+## ローカル環境を、デプロイした Cognito につなぐ
+
+デプロイした Cognito を使ってログイン動作確認したい場合:
+
+```
+# .env を編集
+AUTH_PROVIDER=cognito
+COGNITO_USER_POOL_ID=ap-northeast-1_XXXXXXXXX
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+COGNITO_REGION=ap-northeast-1
+
+# web 側 (build 時に必要)
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=ap-northeast-1_XXXXXXXXX
+NEXT_PUBLIC_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_COGNITO_REGION=ap-northeast-1
+
+# 再起動
+docker compose up -d --build
+```
+
+> ⚠️ **現状の制約**: API の `CognitoAuthProvider.signup/login` は throw する。
+> Web 側に `amazon-cognito-identity-js` 連携を実装するまで、`AUTH_PROVIDER=cognito` でも
+> 実際の signup/login フローは通らない。Cognito 統合の Web SDK 実装は次フェーズの作業。
+
+---
+
+## API イメージのデプロイ (compute デプロイ後)
+
+App Runner は ECR にイメージが push されたら **自動デプロイ** が走る (`autoDeploymentsEnabled: true`)。
 
 ```
 # ECR ログイン
-aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin <ECR_URI>
+aws ecr get-login-password --region ap-northeast-1 | \
+  docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
 
-# イメージビルド + push
-docker buildx build --platform linux/amd64 -f docker/api.Dockerfile -t <ECR_URI>:latest --target prod . --push
+# Multi-arch (M1 Mac から amd64 へ) ビルド + push
+docker buildx build \
+  --platform linux/amd64 \
+  -f docker/api.Dockerfile \
+  --target prod \
+  -t <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/human-growth-api:latest \
+  --push .
+
+# App Runner の状態を確認
+aws apprunner list-services
+aws apprunner describe-service --service-arn <ServiceArn>
 ```
 
-App Runner は ECR push で **自動デプロイ** が走る (`autoDeploymentsEnabled: true`)。
+### 初回のみ: マイグレーション
 
-## 環境戦略
+App Runner で API が起動する前に RDS のスキーマを作る必要がある。
+本番は CI でマイグレーションを流す想定。手動でやる場合:
 
-POC は dev 環境のみ。本番化時に以下を追加:
+```
+# RDS のエンドポイントを取得
+aws rds describe-db-instances \
+  --query 'DBInstances[?DBInstanceIdentifier==`<InstanceId>`].Endpoint.Address' --output text
 
-```typescript
-// infra/bin/app.ts に prod スタック追加
-new NetworkStack(app, 'human-growth-prod-network', { env: prodEnv });
-// ... 各スタックを prod 用に複製
+# Secrets Manager から認証情報を取得 (※ AI は実行禁止、人間が)
+# DATABASE_URL を組み立てて Prisma migrate
+DATABASE_URL=postgresql://app_user:<pass>@<endpoint>:5432/human_growth \
+  npm -w @human-growth/api exec -- prisma migrate deploy
 ```
 
-| 設定 | dev | prod |
-|---|---|---|
-| App Runner CPU/RAM | 0.25/0.5 | 1/2 |
-| RDS インスタンス | t4g.micro | t4g.medium |
-| RDS Multi-AZ | false | true |
-| `removalPolicy` | DESTROY | RETAIN |
-| ログ保持 | 7 日 | 90 日 |
-| アラーム | 最小限 | 包括的 |
-| ドメイン | dev.example.com | example.com |
+ただし RDS は private subnet にあるので **VPN / Session Manager / 踏み台ホスト経由** が必要。
+カジュアルな手段としては、一時的に App Runner にマイグレーション専用エンドポイントを設けるか、
+ECS RunTask で一発走らせるのが綺麗。POC では `prisma db push` を CI で流す想定。
+
+---
+
+## フロントエンドのデプロイ (frontend デプロイ後)
+
+```
+# Next.js を静的書き出し
+cd apps/web
+NEXT_OUTPUT=export NEXT_PUBLIC_API_BASE_URL=https://<DistributionDomain> npm run build
+
+# S3 に sync
+aws s3 sync out s3://<WebBucketName>/ --delete
+
+# CloudFront キャッシュ無効化
+aws cloudfront create-invalidation \
+  --distribution-id <DistributionId> --paths "/*"
+```
+
+`<DistributionId>` は CloudFront コンソール or:
+```
+aws cloudformation describe-stacks --stack-name human-growth-dev-frontend \
+  --query 'Stacks[0].Resources[?ResourceType==`AWS::CloudFront::Distribution`].PhysicalResourceId'
+```
+
+---
+
+## コスト確認
+
+デプロイ完了後 24h 以降、Cost Explorer で:
+
+```
+aws ce get-cost-and-usage \
+  --time-period Start=2026-05-01,End=2026-06-01 \
+  --granularity MONTHLY \
+  --metrics UnblendedCost \
+  --group-by Type=TAG,Key=Project
+```
+
+または Cost Allocation Tags を有効化 (Billing コンソール → Cost allocation tags) して、
+`Project` と `Service` をアクティブ化すれば Cost Explorer 上で正規にフィルタ可能。
+
+> Cost Allocation Tags のアクティブ化は **24h 経たないと過去データには反映されない** 仕様。
+
+---
 
 ## ロールバック
 
-App Runner / ECS は前のイメージタグへ再デプロイ。
-RDS / Cognito の変更は CloudFormation のロールバック (`aws cloudformation rollback-stack`)。
-CloudFront は前のオリジン設定にスタックを戻す。
+```
+# 直前の CloudFormation バージョンに戻す (CDK で前のコミットに戻して再デプロイ)
+git checkout <previous-commit> -- infra
+cd infra && npx cdk diff && npx cdk deploy --all
+
+# 特定スタックだけ巻き戻し
+npx cdk deploy human-growth-dev-compute
+```
+
+App Runner / ECR は ECR の前のタグに切り替えれば即ロールバック可。
+
+---
+
+## 削除 (環境ごと撤去)
+
+```
+cd infra
+npx cdk destroy --all
+```
+
+**RDS は `removalPolicy: SNAPSHOT`** にしてあるので、削除前にスナップショットが自動作成される。
+このスナップショットは別途課金されるため、不要なら手動削除:
+
+```
+aws rds describe-db-snapshots --snapshot-type manual
+aws rds delete-db-snapshot --db-snapshot-identifier <snapshot-id>
+```
+
+S3 バケットは `autoDeleteObjects: true` で中身ごと消える。
+
+---
 
 ## トラブルシューティング
 
-| 症状 | 確認 |
+| 症状 | 確認箇所 |
 |---|---|
-| App Runner が起動しない | CloudWatch Logs `/aws/apprunner/...` |
-| RDS 接続エラー | Security Group / VPC Connector / Secrets Manager の値 |
-| CloudFront 5xx | App Runner の URL が正しいか / WAF ルール |
-| Cognito ログイン失敗 | User Pool / Client ID / Region の一致 |
+| `cdk deploy` が `Resource handler returned message: ...` | CloudFormation コンソールでイベント詳細 |
+| App Runner が `OPERATION_IN_PROGRESS` のまま | CloudWatch Logs `/aws/apprunner/<service>/.../application` |
+| App Runner → RDS 接続失敗 | VPC Connector の Security Group / RDS の SG / Secrets Manager のシークレット値 |
+| CloudFront 5xx | App Runner サービス URL / カスタムオリジン HTTPS only / ALLOW_ALL メソッド |
+| Cognito ログイン失敗 | User Pool ID / Client ID / Region 一致確認、Web SDK 連携実装の有無 |
+| タグが Cost Explorer に出ない | Billing → Cost allocation tags でアクティブ化、24h 待機 |
 
-## 削除
+---
 
-```
-# 全スタック削除 (人間が実行)
-cd infra && npx cdk destroy --all
-```
+## チェックリスト (デプロイ前)
 
-RDS は `removalPolicy: SNAPSHOT` のため、削除前にスナップショットが作成される。
+- [ ] `npx cdk synth` がエラーなく完了する (CI でも検証)
+- [ ] `aws sts get-caller-identity` が想定アカウント
+- [ ] CDK Bootstrap 済み (`cdk bootstrap aws://...`)
+- [ ] `npx cdk diff` で意図した差分のみが出る
+- [ ] dev 環境であれば `removalPolicy: DESTROY/SNAPSHOT` になっている
+- [ ] タグが `Project / Environment / ManagedBy / Service` の4つ付いている (`cdk synth` で確認可)
