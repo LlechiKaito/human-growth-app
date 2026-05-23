@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Test outputs
+coverage/
+playwright-report/
+test-results/
+
+# CDK
+cdk.out/
+.cdk.staging/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Claude / dev-log
+dev-log/
+.claude/
+CLAUDE.local.md
+
+# Docker
+.docker/
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal

@@ -1,0 +1,31 @@
+export const ERROR_CODES = {
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+
+  CHARACTER_NOT_FOUND: 'CHARACTER_NOT_FOUND',
+  QUEST_NOT_FOUND: 'QUEST_NOT_FOUND',
+  QUEST_ALREADY_COMPLETED: 'QUEST_ALREADY_COMPLETED',
+  SKILL_NOT_FOUND: 'SKILL_NOT_FOUND',
+  EMPLOYEE_NOT_FOUND: 'EMPLOYEE_NOT_FOUND',
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+
+export const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  [ERROR_CODES.VALIDATION_FAILED]: 'Request validation failed',
+  [ERROR_CODES.UNAUTHORIZED]: 'Authentication required',
+  [ERROR_CODES.FORBIDDEN]: 'Access forbidden',
+  [ERROR_CODES.NOT_FOUND]: 'Resource not found',
+  [ERROR_CODES.CONFLICT]: 'Resource conflict',
+  [ERROR_CODES.INTERNAL_ERROR]: 'Internal server error',
+
+  [ERROR_CODES.CHARACTER_NOT_FOUND]: 'Character not found',
+  [ERROR_CODES.QUEST_NOT_FOUND]: 'Quest not found',
+  [ERROR_CODES.QUEST_ALREADY_COMPLETED]: 'Quest already completed',
+  [ERROR_CODES.SKILL_NOT_FOUND]: 'Skill not found',
+  [ERROR_CODES.EMPLOYEE_NOT_FOUND]: 'Employee not found',
+};
