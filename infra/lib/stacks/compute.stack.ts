@@ -3,25 +3,22 @@ import * as path from 'node:path';
 import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
 import * as apprunner from 'aws-cdk-lib/aws-apprunner';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { DockerImageAsset, Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 
 interface ComputeStackProps extends StackProps {
-  vpc: ec2.IVpc;
   dbSecret: ISecret;
-  appRunnerSecurityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
   userPoolClient: cognito.IUserPoolClient;
 }
 
 /**
- * Compute Stack
- * App Runner + VPC Connector + Docker Image Asset
- * cdk deploy 時に api.Dockerfile をビルドして cdk-staging ECR に push、
- * そのイメージで App Runner Service を作成する (1コマンドで完結)
+ * Compute Stack (POC: VPC Connector 不使用、egress=DEFAULT)
+ *
+ * App Runner は AWS マネージドネットから直接 Cognito / RDS (public) に到達。
+ * 本番ではこの構成を VPC Connector + VPC Endpoint に切り替えるべき。
  */
 export class ComputeStack extends Stack {
   readonly service: apprunner.CfnService;
@@ -32,17 +29,10 @@ export class ComputeStack extends Stack {
 
     // Docker image: cdk deploy 時に自動ビルド & cdk-staging ECR に push
     const apiImage = new DockerImageAsset(this, 'ApiImage', {
-      directory: path.join(__dirname, '..', '..', '..'), // monorepo root
+      directory: path.join(__dirname, '..', '..', '..'),
       file: 'docker/api.Dockerfile',
       target: 'prod',
       platform: Platform.LINUX_AMD64,
-    });
-
-    const vpcConnector = new apprunner.CfnVpcConnector(this, 'VpcConnector', {
-      vpcConnectorName: 'human-growth-vpc-connector',
-      subnets: props.vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED })
-        .subnetIds,
-      securityGroups: [props.appRunnerSecurityGroup.securityGroupId],
     });
 
     const accessRole = new iam.Role(this, 'AppRunnerAccessRole', {
@@ -60,10 +50,23 @@ export class ComputeStack extends Stack {
     });
     props.dbSecret.grantRead(instanceRole);
 
+    // Cognito 管理者API 利用権限 (signup / login で AdminCreateUser / AdminInitiateAuth を叩く)
+    instanceRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'cognito-idp:AdminCreateUser',
+          'cognito-idp:AdminSetUserPassword',
+          'cognito-idp:AdminInitiateAuth',
+          'cognito-idp:AdminGetUser',
+        ],
+        resources: [props.userPool.userPoolArn],
+      }),
+    );
+
     this.service = new apprunner.CfnService(this, 'ApiService', {
       serviceName: 'human-growth-api',
       sourceConfiguration: {
-        autoDeploymentsEnabled: false, // CDK が image asset 更新時にデプロイをドライブする
+        autoDeploymentsEnabled: false,
         authenticationConfiguration: { accessRoleArn: accessRole.roleArn },
         imageRepository: {
           imageRepositoryType: 'ECR',
@@ -74,7 +77,7 @@ export class ComputeStack extends Stack {
               { name: 'NODE_ENV', value: 'production' },
               { name: 'API_PORT', value: '8080' },
               { name: 'API_LOG_LEVEL', value: 'info' },
-              // POC では '*'。本番では CloudFront のドメイン (frontend デプロイ後) に絞る。
+              // POC では '*'。本番では CloudFront のドメインに絞る。
               { name: 'API_CORS_ORIGIN', value: '*' },
               { name: 'AUTH_PROVIDER', value: 'cognito' },
               { name: 'COGNITO_USER_POOL_ID', value: props.userPool.userPoolId },
@@ -92,12 +95,7 @@ export class ComputeStack extends Stack {
         memory: '0.5 GB',
         instanceRoleArn: instanceRole.roleArn,
       },
-      networkConfiguration: {
-        egressConfiguration: {
-          egressType: 'VPC',
-          vpcConnectorArn: vpcConnector.attrVpcConnectorArn,
-        },
-      },
+      // networkConfiguration を指定しない → egressType=DEFAULT (AWS マネージドネット)
       healthCheckConfiguration: {
         protocol: 'HTTP',
         path: '/api/health',

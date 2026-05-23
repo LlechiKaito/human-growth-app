@@ -41,9 +41,7 @@ Tags.of(auth).add('Service', 'auth');
 
 const compute = new ComputeStack(app, `${prefix}-compute`, {
   env,
-  vpc: network.vpc,
   dbSecret: database.secret,
-  appRunnerSecurityGroup: network.appRunnerSecurityGroup,
   userPool: auth.userPool,
   userPoolClient: auth.userPoolClient,
 });

@@ -10,9 +10,12 @@ interface DatabaseStackProps extends StackProps {
 }
 
 /**
- * Database Stack
- * RDS PostgreSQL 16, db.t4g.micro, single-AZ, isolated subnet
- * 認証情報は Secrets Manager で管理
+ * Database Stack (POC: publiclyAccessible 構成)
+ * RDS PostgreSQL 16, db.t4g.micro, single-AZ, public subnet
+ *
+ * App Runner は VPC Connector を使わない (egress=DEFAULT) ため、RDS を internet 経由で叩く構成。
+ * SG で 0.0.0.0/0:5432 を許可、強制 SSL + 強力な自動生成パスワードで守る。
+ * 本番では publiclyAccessible:false + VPC Connector + private subnet にすること。
  */
 export class DatabaseStack extends Stack {
   readonly instance: rds.DatabaseInstance;
@@ -23,7 +26,7 @@ export class DatabaseStack extends Stack {
 
     this.instance = new rds.DatabaseInstance(this, 'Postgres', {
       vpc: props.vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_16_13,
       }),
@@ -38,7 +41,7 @@ export class DatabaseStack extends Stack {
       databaseName: 'human_growth',
       credentials: rds.Credentials.fromGeneratedSecret('app_user'),
       securityGroups: [props.databaseSecurityGroup],
-      publiclyAccessible: false,
+      publiclyAccessible: true,
     });
 
     this.secret = this.instance.secret!;
