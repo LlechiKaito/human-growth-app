@@ -1,15 +1,16 @@
+import * as path from 'node:path';
+
 import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
 import * as apprunner from 'aws-cdk-lib/aws-apprunner';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import type * as ecr from 'aws-cdk-lib/aws-ecr';
+import { DockerImageAsset, Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 
 interface ComputeStackProps extends StackProps {
   vpc: ec2.IVpc;
-  ecrRepository: ecr.IRepository;
   dbSecret: ISecret;
   appRunnerSecurityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -18,8 +19,9 @@ interface ComputeStackProps extends StackProps {
 
 /**
  * Compute Stack
- * App Runner Service + VPC Connector (ECR は EcrStack で先に作成)
- * HTTPS は App Runner 組み込み (ALB 不要)
+ * App Runner + VPC Connector + Docker Image Asset
+ * cdk deploy 時に api.Dockerfile をビルドして cdk-staging ECR に push、
+ * そのイメージで App Runner Service を作成する (1コマンドで完結)
  */
 export class ComputeStack extends Stack {
   readonly service: apprunner.CfnService;
@@ -27,6 +29,14 @@ export class ComputeStack extends Stack {
 
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
+
+    // Docker image: cdk deploy 時に自動ビルド & cdk-staging ECR に push
+    const apiImage = new DockerImageAsset(this, 'ApiImage', {
+      directory: path.join(__dirname, '..', '..', '..'), // monorepo root
+      file: 'docker/api.Dockerfile',
+      target: 'prod',
+      platform: Platform.LINUX_AMD64,
+    });
 
     const vpcConnector = new apprunner.CfnVpcConnector(this, 'VpcConnector', {
       vpcConnectorName: 'human-growth-vpc-connector',
@@ -43,6 +53,7 @@ export class ComputeStack extends Stack {
         ),
       ],
     });
+    apiImage.repository.grantPull(accessRole);
 
     const instanceRole = new iam.Role(this, 'AppRunnerInstanceRole', {
       assumedBy: new iam.ServicePrincipal('tasks.apprunner.amazonaws.com'),
@@ -52,11 +63,11 @@ export class ComputeStack extends Stack {
     this.service = new apprunner.CfnService(this, 'ApiService', {
       serviceName: 'human-growth-api',
       sourceConfiguration: {
-        autoDeploymentsEnabled: true,
+        autoDeploymentsEnabled: false, // CDK が image asset 更新時にデプロイをドライブする
         authenticationConfiguration: { accessRoleArn: accessRole.roleArn },
         imageRepository: {
           imageRepositoryType: 'ECR',
-          imageIdentifier: `${props.ecrRepository.repositoryUri}:latest`,
+          imageIdentifier: apiImage.imageUri,
           imageConfiguration: {
             port: '8080',
             runtimeEnvironmentVariables: [
@@ -100,5 +111,6 @@ export class ComputeStack extends Stack {
     this.serviceUrl = `https://${this.service.attrServiceUrl}`;
 
     new CfnOutput(this, 'ApiServiceUrl', { value: this.serviceUrl });
+    new CfnOutput(this, 'ApiImageUri', { value: apiImage.imageUri });
   }
 }

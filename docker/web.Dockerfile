@@ -8,6 +8,7 @@ COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY infra/package.json infra/
+COPY tests/e2e/package.json tests/e2e/
 RUN npm install --workspaces --include-workspace-root
 
 # ----- dev (used by docker-compose) -----

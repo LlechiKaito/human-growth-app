@@ -1,0 +1,51 @@
+# Build outputs / caches (CDK asset bundling 時にも除外される)
+node_modules
+**/node_modules
+.next
+**/.next
+out
+**/out
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+*.tsbuildinfo
+
+# CDK
+infra/cdk.out
+cdk.out
+.cdk.staging
+
+# Docker
+**/.docker
+docker-compose.override.yml
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+*.swp
+
+# Logs / Tests
+*.log
+playwright-report
+**/playwright-report
+test-results
+**/test-results
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Claude / dev-log
+dev-log
+.claude
+CLAUDE.local.md
+CLAUDE.md
