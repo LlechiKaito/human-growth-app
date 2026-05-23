@@ -6,4 +6,5 @@ export const API_PATHS = {
   QUEST_COMPLETE: (id: string) => `/api/quests/${id}/complete`,
   AUTH_LOGIN: '/api/auth/login',
   AUTH_SIGNUP: '/api/auth/signup',
+  AUTH_ME: '/api/auth/me',
 } as const;

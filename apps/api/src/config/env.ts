@@ -6,6 +6,8 @@ const envSchema = z.object({
   API_LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   API_CORS_ORIGIN: z.string().url(),
   DATABASE_URL: z.string().url(),
+  AUTH_PROVIDER: z.enum(['cognito', 'local']).default('local'),
+  AUTH_LOCAL_SECRET: z.string().min(16).default('dev-secret-change-me-in-prod-please'),
   COGNITO_USER_POOL_ID: z.string().min(1).optional(),
   COGNITO_CLIENT_ID: z.string().min(1).optional(),
   COGNITO_REGION: z.string().min(1).default('ap-northeast-1'),
