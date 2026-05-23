@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - hg-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
       DATABASE_URL: postgresql://dev:dev@postgres:5432/human_growth
       COGNITO_REGION: ap-northeast-1
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,10 +44,10 @@ services:
     container_name: hg-web
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8081
       NEXT_PUBLIC_COGNITO_REGION: ap-northeast-1
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - api
 

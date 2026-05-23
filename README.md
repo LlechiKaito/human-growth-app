@@ -47,9 +47,12 @@ cp .env.example .env
 docker compose up -d
 ```
 
-- Web: http://localhost:3000
-- API: http://localhost:8080/api/health
-- PostgreSQL: localhost:5432 (dev / dev / human_growth)
+- Web: http://localhost:**3001**
+- API: http://localhost:**8081**/api/health
+- PostgreSQL: localhost:**5433** (dev / dev / human_growth)
+
+> ホスト側ポートは他プロジェクトと被らないようずらしてある (3000 → 3001, 8080 → 8081, 5432 → 5433)。
+> コンテナ間通信は標準ポート (3000, 8080, 5432) のままなのでアプリ側の設定変更は不要。
 
 ### マイグレーション + シード
 
