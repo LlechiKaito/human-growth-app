@@ -28,8 +28,23 @@ services:
       API_LOG_LEVEL: debug
       API_CORS_ORIGIN: http://localhost:3000
       DATABASE_URL: postgresql://dev:dev@postgres:5432/human_growth
-      COGNITO_REGION: ap-northeast-1
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # AUTH 設定 (.env で上書き可)
+      AUTH_PROVIDER: ${AUTH_PROVIDER:-local}
+      AUTH_LOCAL_SECRET: ${AUTH_LOCAL_SECRET:-dev-secret-change-me-in-prod-please-1234567890}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      COGNITO_REGION: ${COGNITO_REGION:-ap-northeast-1}
+      # AWS SDK 用 (Cognito の AdminCreateUser 等を叩く時に必要)
+      # ~/.aws/credentials が mount されてれば AWS_PROFILE で参照
+      AWS_REGION: ${AWS_REGION:-ap-northeast-1}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    volumes:
+      # ホストの ~/.aws を read-only で mount → AWS CLI/SDK が credentials を解決できる
+      - ${HOME}/.aws:/root/.aws:ro
     ports:
       - "8081:8080"
     depends_on:
