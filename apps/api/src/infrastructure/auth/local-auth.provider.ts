@@ -18,6 +18,7 @@ interface StoredUser {
   sub: string;
   email: string;
   passwordHash: string;
+  displayName: string;
 }
 
 const ID_TOKEN_TTL_SEC = 60 * 60;
@@ -50,8 +51,9 @@ export class LocalAuthProvider implements AuthProvider {
       sub,
       email: input.email,
       passwordHash: this.hash(input.password),
+      displayName: input.displayName,
     });
-    const tokens = await this.issueTokens(sub, input.email);
+    const tokens = await this.issueTokens(sub, input.email, input.displayName);
     return { sub, tokens };
   }
 
@@ -60,7 +62,7 @@ export class LocalAuthProvider implements AuthProvider {
     if (!user || user.passwordHash !== this.hash(input.password)) {
       throw new DomainError(ERROR_CODES.UNAUTHORIZED, 'Invalid credentials');
     }
-    const tokens = await this.issueTokens(user.sub, user.email);
+    const tokens = await this.issueTokens(user.sub, user.email, user.displayName);
     return { sub: user.sub, tokens };
   }
 
@@ -71,10 +73,12 @@ export class LocalAuthProvider implements AuthProvider {
         audience: 'human-growth',
       });
       const groups = Array.isArray(payload.groups) ? (payload.groups as string[]) : [];
+      const displayName = (payload.given_name as string | undefined) ?? null;
       return {
         sub: payload.sub as string,
         email: payload.email as string,
         groups,
+        displayName,
       };
     } catch {
       throw new DomainError(ERROR_CODES.UNAUTHORIZED, 'Invalid token');
@@ -85,10 +89,10 @@ export class LocalAuthProvider implements AuthProvider {
     return createHmac('sha256', 'salt').update(plain).digest('hex');
   }
 
-  private async issueTokens(sub: string, email: string): Promise<AuthTokens> {
+  private async issueTokens(sub: string, email: string, displayName: string): Promise<AuthTokens> {
     const now = Math.floor(Date.now() / 1000);
     const groups = this.adminEmails.has(email.toLowerCase()) ? [ADMINS_GROUP] : [];
-    const idToken = await new SignJWT({ email, groups })
+    const idToken = await new SignJWT({ email, groups, given_name: displayName })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(sub)
       .setIssuer('local-auth')

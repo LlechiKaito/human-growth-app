@@ -10,6 +10,7 @@ declare module 'hono' {
   interface ContextVariableMap {
     cognitoSub: string;
     userEmail: string;
+    userDisplayName: string | null;
     userGroups: string[];
     isAdmin: boolean;
   }
@@ -36,6 +37,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   }
   c.set('cognitoSub', user.sub);
   c.set('userEmail', user.email);
+  c.set('userDisplayName', user.displayName);
   c.set('userGroups', user.groups);
   c.set('isAdmin', user.groups.includes(ADMINS_GROUP));
   return next();

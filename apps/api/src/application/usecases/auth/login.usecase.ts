@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
+
 import type { AuthTokens, LoginInput } from '@/application/dto/auth.dto';
-import { ERROR_CODES } from '@/constants/error-codes';
-import { DomainError } from '@/domain/errors/domain-errors';
+import { Employee } from '@/domain/entities/employee.entity';
 import type { EmployeeRepository } from '@/domain/repositories/employee.repository';
 
 import type { AuthProvider } from '@/infrastructure/auth/auth.provider';
@@ -18,10 +19,29 @@ export class LoginUseCase {
 
   async execute(input: LoginInput): Promise<LoginResult> {
     const { sub, tokens } = await this.auth.login(input);
-    const employee = await this.employees.findByCognitoSub(sub);
+
+    let employee = await this.employees.findByCognitoSub(sub);
+
+    // Cognito 認証は通ったが Employee がいない場合 = 別環境 (本番 → ローカル等)
+    // で signup 済みのユーザー。JWT クレームから Employee を bootstrap する。
     if (!employee) {
-      throw new DomainError(ERROR_CODES.UNAUTHORIZED, 'Employee record not found');
+      const claims = await this.auth.verify(tokens.idToken);
+      const now = new Date();
+      employee = await this.employees.create(
+        Employee.create({
+          id: randomUUID(),
+          externalId: null,
+          cognitoSub: sub,
+          email: claims.email,
+          displayName: claims.displayName ?? claims.email,
+          department: null,
+          joinedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      );
     }
+
     return { employeeId: employee.id, tokens };
   }
 }

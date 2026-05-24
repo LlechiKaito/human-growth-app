@@ -21,6 +21,8 @@ export interface AuthenticatedUser {
   sub: string;
   email: string;
   groups: string[];
+  /** Cognito の given_name クレーム or Local の signup 時 displayName */
+  displayName: string | null;
 }
 
 export interface MeResponse {
