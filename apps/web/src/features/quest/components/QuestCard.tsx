@@ -1,3 +1,4 @@
+import { DocumentUploader } from '@/features/document/components/DocumentUploader';
 import type { QuestDto } from '@/features/quest/api';
 
 const DIFFICULTY_COLOR: Record<QuestDto['difficulty'], string> = {
@@ -58,6 +59,9 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
           {isCompleting ? '完了処理中...' : 'クエストを完了する'}
         </button>
       )}
+      <div className="mt-3">
+        <DocumentUploader questId={quest.id} />
+      </div>
     </div>
   );
 };

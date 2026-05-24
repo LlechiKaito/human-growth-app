@@ -10,4 +10,5 @@ export const ROUTES = {
   ADMIN_QUEST_NEW: '/admin/quests/new',
   // Next.js output:'export' が [id] 動的ルートを許さないので、edit はクエリパラメータ
   ADMIN_QUEST_EDIT: (id: string) => `/admin/quests/edit?id=${encodeURIComponent(id)}`,
+  ADMIN_DOCUMENTS: '/admin/documents',
 } as const;
