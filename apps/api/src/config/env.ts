@@ -32,12 +32,16 @@ const envSchema = z.object({
   DATABASE_URL: z.string().transform(transformDatabaseUrl).pipe(z.string().url()),
   AUTH_PROVIDER: z.enum(['cognito', 'local']).default('local'),
   AUTH_LOCAL_SECRET: z.string().min(16).default('dev-secret-change-me-in-prod-please'),
-  COGNITO_USER_POOL_ID: z.string().min(1).optional(),
-  COGNITO_CLIENT_ID: z.string().min(1).optional(),
+  // 空文字列 ('') は「未設定」と同じ扱い ($\{VAR:-} 展開対策)
+  COGNITO_USER_POOL_ID: z.string().optional(),
+  COGNITO_CLIENT_ID: z.string().optional(),
   COGNITO_REGION: z.string().min(1).default('ap-northeast-1'),
   // ローカル開発で admin として扱うメールアドレス (LocalAuthProvider のみ)
   // 例: ADMIN_EMAILS=admin@example.com,boss@example.com
   ADMIN_EMAILS: z.string().default(''),
+  // 空なら InMemoryStorageService にフォールバック (テスト・ローカル用)
+  DOCUMENTS_BUCKET: z.string().optional(),
+  AWS_REGION: z.string().min(1).default('ap-northeast-1'),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -5,6 +5,7 @@ import * as apprunner from 'aws-cdk-lib/aws-apprunner';
 import type * as cognito from 'aws-cdk-lib/aws-cognito';
 import { DockerImageAsset, Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import type * as s3 from 'aws-cdk-lib/aws-s3';
 import type { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import type { Construct } from 'constructs';
 
@@ -12,6 +13,7 @@ interface ComputeStackProps extends StackProps {
   dbSecret: ISecret;
   userPool: cognito.IUserPool;
   userPoolClient: cognito.IUserPoolClient;
+  documentsBucket: s3.IBucket;
 }
 
 /**
@@ -63,6 +65,9 @@ export class ComputeStack extends Stack {
       }),
     );
 
+    // Documents バケット読み書き権限
+    props.documentsBucket.grantReadWrite(instanceRole);
+
     this.service = new apprunner.CfnService(this, 'ApiService', {
       serviceName: 'human-growth-api',
       sourceConfiguration: {
@@ -83,6 +88,8 @@ export class ComputeStack extends Stack {
               { name: 'COGNITO_USER_POOL_ID', value: props.userPool.userPoolId },
               { name: 'COGNITO_CLIENT_ID', value: props.userPoolClient.userPoolClientId },
               { name: 'COGNITO_REGION', value: this.region },
+              { name: 'DOCUMENTS_BUCKET', value: props.documentsBucket.bucketName },
+              { name: 'AWS_REGION', value: this.region },
             ],
             runtimeEnvironmentSecrets: [
               { name: 'DATABASE_URL', value: props.dbSecret.secretArn },

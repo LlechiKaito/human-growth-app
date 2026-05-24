@@ -3,6 +3,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { AdminListCharactersUseCase } from '@/application/usecases/character/admin-list-characters.usecase';
+import { AdminListPendingDocumentsUseCase } from '@/application/usecases/document/admin-list-pending.usecase';
+import { AdminReviewDocumentUseCase } from '@/application/usecases/document/admin-review-document.usecase';
 import { AdminCreateQuestUseCase } from '@/application/usecases/quest/admin-create-quest.usecase';
 import { AdminDeleteQuestUseCase } from '@/application/usecases/quest/admin-delete-quest.usecase';
 import { AdminListQuestsUseCase } from '@/application/usecases/quest/admin-list-quests.usecase';
@@ -12,6 +14,8 @@ import type { Quest } from '@/domain/entities/quest.entity';
 
 import { prisma } from '@/infrastructure/db/prisma.client';
 import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
+import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
+import { QuestDocumentPrismaRepository } from '@/infrastructure/repositories/quest-document.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 import { adminMiddleware } from '@/presentation/middlewares/admin.middleware';
@@ -29,7 +33,13 @@ const createSchema = z.object({
 
 const updateSchema = createSchema.partial();
 
+const rejectSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
 const quests = () => new QuestPrismaRepository(prisma);
+const documents = () => new QuestDocumentPrismaRepository(prisma);
+const employees = () => new EmployeePrismaRepository(prisma);
 
 const toResponse = (q: Quest) => ({
   id: q.id,
@@ -75,4 +85,24 @@ export const adminRoutes = new Hono()
     );
     const list = await usecase.execute();
     return c.json(list, HTTP_STATUS.OK);
+  })
+  .get('/documents/pending', async (c) => {
+    const usecase = new AdminListPendingDocumentsUseCase(documents());
+    const list = await usecase.execute();
+    return c.json(list, HTTP_STATUS.OK);
+  })
+  .post('/documents/:id/approve', async (c) => {
+    const sub = c.get('cognitoSub');
+    const id = c.req.param('id');
+    const usecase = new AdminReviewDocumentUseCase(documents(), employees());
+    const result = await usecase.approve(sub, id);
+    return c.json(result, HTTP_STATUS.OK);
+  })
+  .post('/documents/:id/reject', zValidator('json', rejectSchema), async (c) => {
+    const sub = c.get('cognitoSub');
+    const id = c.req.param('id');
+    const { reason } = c.req.valid('json');
+    const usecase = new AdminReviewDocumentUseCase(documents(), employees());
+    const result = await usecase.reject(sub, id, reason);
+    return c.json(result, HTTP_STATUS.OK);
   });

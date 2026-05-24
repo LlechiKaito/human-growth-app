@@ -5,6 +5,7 @@ import { App, Tags } from 'aws-cdk-lib';
 import { AuthStack } from '../lib/stacks/auth.stack';
 import { ComputeStack } from '../lib/stacks/compute.stack';
 import { DatabaseStack } from '../lib/stacks/database.stack';
+import { DocumentsStack } from '../lib/stacks/documents.stack';
 import { FrontendStack } from '../lib/stacks/frontend.stack';
 import { MonitoringStack } from '../lib/stacks/monitoring.stack';
 import { NetworkStack } from '../lib/stacks/network.stack';
@@ -39,11 +40,15 @@ Tags.of(database).add('Service', 'database');
 const auth = new AuthStack(app, `${prefix}-auth`, { env });
 Tags.of(auth).add('Service', 'auth');
 
+const documents = new DocumentsStack(app, `${prefix}-documents`, { env });
+Tags.of(documents).add('Service', 'documents');
+
 const compute = new ComputeStack(app, `${prefix}-compute`, {
   env,
   dbSecret: database.secret,
   userPool: auth.userPool,
   userPoolClient: auth.userPoolClient,
+  documentsBucket: documents.bucket,
 });
 Tags.of(compute).add('Service', 'compute');
 

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS = [
   { href: ROUTES.ADMIN_QUESTS, label: '管理 (クエスト)' },
+  { href: ROUTES.ADMIN_DOCUMENTS, label: '管理 (書類)' },
 ];
 
 export default function MainLayout({ children }: { children: ReactNode }) {
