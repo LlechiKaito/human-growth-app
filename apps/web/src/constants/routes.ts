@@ -8,5 +8,5 @@ export const ROUTES = {
   CHARACTER: (id: string) => `/characters/${id}`,
   ADMIN_QUESTS: '/admin/quests',
   ADMIN_QUEST_NEW: '/admin/quests/new',
-  ADMIN_QUEST_EDIT: (id: string) => `/admin/quests/${id}/edit`,
+  ADMIN_QUEST_EDIT: (id: string) => `/admin/quests/edit?id=${encodeURIComponent(id)}`,
 } as const;

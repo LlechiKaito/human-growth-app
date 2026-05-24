@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { ROUTES } from '@/constants/routes';
 import { AdminGuard } from '@/features/admin/components/AdminGuard';
@@ -19,12 +19,14 @@ export default function EditAdminQuestPage() {
 }
 
 const Content = () => {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') ?? '';
+
   const list = useAdminQuests();
   const update = useUpdateAdminQuest();
 
+  if (!id) return <p className="text-rpg-health">ID が指定されていません</p>;
   if (list.isLoading) return <p className="text-gray-400">読み込み中...</p>;
   const quest = list.data?.find((q) => q.id === id);
   if (!quest) return <p className="text-rpg-health">クエストが見つかりません</p>;
