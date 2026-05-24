@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 
 import type { QuestUpsertInput } from '@/features/admin/api';
+import { CharacterPicker } from '@/features/admin/components/CharacterPicker';
 import type { QuestDifficulty } from '@/features/quest/api';
 
 const DIFFICULTIES: QuestDifficulty[] = ['EASY', 'NORMAL', 'HARD', 'EPIC'];
@@ -19,8 +20,8 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
   const [description, setDescription] = useState(initial?.description ?? '');
   const [difficulty, setDifficulty] = useState<QuestDifficulty>(initial?.difficulty ?? 'NORMAL');
   const [rewardXp, setRewardXp] = useState<number>(initial?.rewardXp ?? 100);
-  const [assignedCharacterId, setAssignedCharacterId] = useState(
-    initial?.assignedCharacterId ?? '',
+  const [assignedCharacterId, setAssignedCharacterId] = useState<string | null>(
+    initial?.assignedCharacterId ?? null,
   );
 
   const handleSubmit = (e: FormEvent) => {
@@ -30,7 +31,7 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
       description,
       difficulty,
       rewardXp,
-      assignedCharacterId: assignedCharacterId || null,
+      assignedCharacterId,
     });
   };
 
@@ -91,16 +92,7 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-gray-300">アサイン先キャラ ID (任意、UUID)</span>
-        <input
-          type="text"
-          value={assignedCharacterId}
-          onChange={(e) => setAssignedCharacterId(e.target.value)}
-          placeholder="空欄なら未割当 (誰でも受注可)"
-          className="rounded border border-gray-600 bg-rpg-card px-3 py-2 text-white outline-none focus:border-rpg-accent"
-        />
-      </label>
+      <CharacterPicker value={assignedCharacterId} onChange={setAssignedCharacterId} />
 
       <button
         type="submit"

@@ -17,6 +17,13 @@ export class CharacterPrismaRepository implements CharacterRepository {
     return row ? this.toEntity(row) : null;
   }
 
+  async listAll(): Promise<Character[]> {
+    const rows = await this.prisma.character.findMany({
+      orderBy: [{ name: 'asc' }],
+    });
+    return rows.map((row) => this.toEntity(row));
+  }
+
   async save(character: Character): Promise<Character> {
     const row = await this.prisma.character.upsert({
       where: { id: character.id },
