@@ -21,9 +21,10 @@ const characters = () => new CharacterPrismaRepository(prisma);
 const quests = () => new QuestPrismaRepository(prisma);
 const docs = () => new QuestDocumentPrismaRepository(prisma);
 
+// NOTE: ルート '/' にマウントするため、`.use('*', authMiddleware)` は
+// 全パス (例: /_dev/*) にも leak する。各ルートで個別に authMiddleware を指定する。
 export const documentRoutes = new Hono()
-  .use('*', authMiddleware)
-  .post('/quests/:questId/documents', async (c) => {
+  .post('/quests/:questId/documents', authMiddleware, async (c) => {
     const sub = c.get('cognitoSub');
     const questId = c.req.param('questId');
 
@@ -49,7 +50,7 @@ export const documentRoutes = new Hono()
     });
     return c.json(created, HTTP_STATUS.CREATED);
   })
-  .get('/quests/:questId/documents', async (c) => {
+  .get('/quests/:questId/documents', authMiddleware, async (c) => {
     const sub = c.get('cognitoSub');
     const isAdmin = c.get('isAdmin');
     const questId = c.req.param('questId');
@@ -62,7 +63,7 @@ export const documentRoutes = new Hono()
     const list = await usecase.execute(sub, isAdmin, questId);
     return c.json(list, HTTP_STATUS.OK);
   })
-  .get('/documents/:id/download', async (c) => {
+  .get('/documents/:id/download', authMiddleware, async (c) => {
     const sub = c.get('cognitoSub');
     const isAdmin = c.get('isAdmin');
     const id = c.req.param('id');
