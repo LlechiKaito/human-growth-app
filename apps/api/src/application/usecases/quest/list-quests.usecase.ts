@@ -1,5 +1,7 @@
 import type { QuestDto } from '@/application/dto/quest.dto';
 import { ERROR_CODES } from '@/constants/error-codes';
+import type { Character } from '@/domain/entities/character.entity';
+import type { Quest } from '@/domain/entities/quest.entity';
 import { DomainError } from '@/domain/errors/domain-errors';
 import type { CharacterRepository } from '@/domain/repositories/character.repository';
 import type { EmployeeRepository } from '@/domain/repositories/employee.repository';
@@ -20,14 +22,35 @@ export class ListQuestsUseCase {
     if (!character) throw new DomainError(ERROR_CODES.CHARACTER_NOT_FOUND);
 
     const quests = await this.quests.listAssignedTo(character.id);
-    return quests.map((q) => ({
-      id: q.id,
-      title: q.title,
-      description: q.description,
-      difficulty: q.difficulty,
-      rewardXp: q.rewardXp.toNumber(),
-      status: q.status,
-      assignedCharacterId: q.assignedCharacterId,
-    }));
+
+    // assignedCharacterId に対応する Character を一括取得 (アバター表示用)
+    const assignedIds = Array.from(
+      new Set(quests.map((q) => q.assignedCharacterId).filter((v): v is string => !!v)),
+    );
+    const charById = new Map<string, Character>();
+    await Promise.all(
+      assignedIds.map(async (id) => {
+        const c = await this.characters.findById(id);
+        if (c) charById.set(id, c);
+      }),
+    );
+
+    return quests.map((q) => toQuestDto(q, charById));
   }
 }
+
+export const toQuestDto = (q: Quest, charById: Map<string, Character>): QuestDto => {
+  const c = q.assignedCharacterId ? charById.get(q.assignedCharacterId) ?? null : null;
+  return {
+    id: q.id,
+    title: q.title,
+    description: q.description,
+    difficulty: q.difficulty,
+    rewardXp: q.rewardXp.toNumber(),
+    status: q.status,
+    assignedCharacterId: q.assignedCharacterId,
+    assignedCharacterName: c?.name ?? null,
+    assignedCharacterClass: c?.className ?? null,
+    assignedCharacterLevel: c?.level ?? null,
+  };
+};

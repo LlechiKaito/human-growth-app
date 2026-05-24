@@ -12,6 +12,9 @@ export interface QuestDto {
   rewardXp: number;
   status: QuestStatus;
   assignedCharacterId: string | null;
+  assignedCharacterName: string | null;
+  assignedCharacterClass: string | null;
+  assignedCharacterLevel: number | null;
 }
 
 export interface CompleteQuestResult {

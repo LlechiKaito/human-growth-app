@@ -1,3 +1,4 @@
+import { CharacterAvatar } from '@/features/character/components/CharacterAvatar';
 import type { QuestDto } from '@/features/quest/api';
 
 const DIFFICULTY_COLOR: Record<QuestDto['difficulty'], string> = {
@@ -21,6 +22,10 @@ interface QuestCardProps {
 
 export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) => {
   const isCompleted = quest.status === 'COMPLETED';
+  const hasAssignee =
+    quest.assignedCharacterId &&
+    quest.assignedCharacterClass &&
+    quest.assignedCharacterLevel !== null;
   return (
     <div
       className={
@@ -41,6 +46,19 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
           </div>
           <h3 className="mt-1 font-semibold text-white">{quest.title}</h3>
           <p className="mt-1 text-sm text-gray-400">{quest.description}</p>
+          {hasAssignee && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+              <CharacterAvatar
+                className={quest.assignedCharacterClass as string}
+                level={quest.assignedCharacterLevel as number}
+                size={28}
+                testId={`quest-assignee-${quest.id}`}
+              />
+              <span>
+                アサイン: {quest.assignedCharacterName} (Lv.{quest.assignedCharacterLevel})
+              </span>
+            </div>
+          )}
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-500">Reward</p>

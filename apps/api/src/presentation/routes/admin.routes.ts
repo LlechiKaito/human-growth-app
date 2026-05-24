@@ -7,7 +7,9 @@ import { AdminCreateQuestUseCase } from '@/application/usecases/quest/admin-crea
 import { AdminDeleteQuestUseCase } from '@/application/usecases/quest/admin-delete-quest.usecase';
 import { AdminListQuestsUseCase } from '@/application/usecases/quest/admin-list-quests.usecase';
 import { AdminUpdateQuestUseCase } from '@/application/usecases/quest/admin-update-quest.usecase';
+import { toQuestDto } from '@/application/usecases/quest/list-quests.usecase';
 import { HTTP_STATUS } from '@/constants/http-status';
+import type { Character } from '@/domain/entities/character.entity';
 import type { Quest } from '@/domain/entities/quest.entity';
 
 import { prisma } from '@/infrastructure/db/prisma.client';
@@ -30,22 +32,22 @@ const createSchema = z.object({
 const updateSchema = createSchema.partial();
 
 const quests = () => new QuestPrismaRepository(prisma);
+const characters = () => new CharacterPrismaRepository(prisma);
 
-const toResponse = (q: Quest) => ({
-  id: q.id,
-  title: q.title,
-  description: q.description,
-  difficulty: q.difficulty,
-  rewardXp: q.rewardXp.toNumber(),
-  status: q.status,
-  assignedCharacterId: q.assignedCharacterId,
-});
+const enrichSingle = async (q: Quest) => {
+  const map = new Map<string, Character>();
+  if (q.assignedCharacterId) {
+    const c = await characters().findById(q.assignedCharacterId);
+    if (c) map.set(c.id, c);
+  }
+  return toQuestDto(q, map);
+};
 
 export const adminRoutes = new Hono()
   .use('*', authMiddleware)
   .use('*', adminMiddleware)
   .get('/quests', async (c) => {
-    const usecase = new AdminListQuestsUseCase(quests());
+    const usecase = new AdminListQuestsUseCase(quests(), characters());
     const list = await usecase.execute();
     return c.json(list, HTTP_STATUS.OK);
   })
@@ -53,14 +55,14 @@ export const adminRoutes = new Hono()
     const input = c.req.valid('json');
     const usecase = new AdminCreateQuestUseCase(quests());
     const created = await usecase.execute(input);
-    return c.json(toResponse(created), HTTP_STATUS.CREATED);
+    return c.json(await enrichSingle(created), HTTP_STATUS.CREATED);
   })
   .put('/quests/:id', zValidator('json', updateSchema), async (c) => {
     const id = c.req.param('id');
     const input = c.req.valid('json');
     const usecase = new AdminUpdateQuestUseCase(quests());
     const updated = await usecase.execute(id, input);
-    return c.json(toResponse(updated), HTTP_STATUS.OK);
+    return c.json(await enrichSingle(updated), HTTP_STATUS.OK);
   })
   .delete('/quests/:id', async (c) => {
     const id = c.req.param('id');
@@ -69,10 +71,7 @@ export const adminRoutes = new Hono()
     return c.body(null, 204);
   })
   .get('/characters', async (c) => {
-    const usecase = new AdminListCharactersUseCase(
-      prisma,
-      new CharacterPrismaRepository(prisma),
-    );
+    const usecase = new AdminListCharactersUseCase(prisma, characters());
     const list = await usecase.execute();
     return c.json(list, HTTP_STATUS.OK);
   });

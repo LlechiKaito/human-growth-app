@@ -8,6 +8,10 @@ export interface QuestDto {
   rewardXp: number;
   status: QuestStatus;
   assignedCharacterId: string | null;
+  /** assignedCharacterId が non-null の時のみセットされる (アバター表示用) */
+  assignedCharacterName: string | null;
+  assignedCharacterClass: string | null;
+  assignedCharacterLevel: number | null;
 }
 
 export interface CompleteQuestResultDto {

@@ -5,8 +5,10 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { ROUTES } from '@/constants/routes';
-import { AuthGuard } from '@/features/auth/components/AuthGuard';
 import { useLogout, useMe } from '@/features/auth/hooks/useAuth';
+import { AuthGuard } from '@/features/auth/components/AuthGuard';
+import { CharacterAvatar } from '@/features/character/components/CharacterAvatar';
+import { useMyCharacter } from '@/features/character/hooks/useMyCharacter';
 
 const NAV_ITEMS = [
   { href: ROUTES.DASHBOARD, label: 'ダッシュボード' },
@@ -21,6 +23,7 @@ const ADMIN_NAV_ITEMS = [
 export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useMe();
+  const character = useMyCharacter();
   const logout = useLogout();
   const isAdmin = me.data?.isAdmin ?? false;
   const navItems = isAdmin ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
@@ -51,9 +54,22 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm">
+            {character.data && (
+              <CharacterAvatar
+                className={character.data.className}
+                level={character.data.level}
+                size={32}
+                testId="nav-avatar"
+              />
+            )}
             {me.data && (
               <span className="text-gray-300" data-testid="me-name">
                 {me.data.displayName}
+                {character.data && (
+                  <span className="ml-1 text-xs text-rpg-accent">
+                    Lv.{character.data.level}
+                  </span>
+                )}
               </span>
             )}
             <button
