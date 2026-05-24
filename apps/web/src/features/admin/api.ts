@@ -31,3 +31,17 @@ export const adminUpdateQuest = async (
 export const adminDeleteQuest = async (id: string): Promise<void> => {
   await httpClient.delete(API_PATHS.ADMIN_QUEST_BY_ID(id));
 };
+
+export interface CharacterSummaryDto {
+  id: string;
+  name: string;
+  className: string;
+  level: number;
+  email: string;
+  department: string | null;
+}
+
+export const adminListCharacters = async (): Promise<CharacterSummaryDto[]> => {
+  const { data } = await httpClient.get<CharacterSummaryDto[]>(API_PATHS.ADMIN_CHARACTERS);
+  return data;
+};

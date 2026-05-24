@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { AdminListCharactersUseCase } from '@/application/usecases/character/admin-list-characters.usecase';
 import { AdminCreateQuestUseCase } from '@/application/usecases/quest/admin-create-quest.usecase';
 import { AdminDeleteQuestUseCase } from '@/application/usecases/quest/admin-delete-quest.usecase';
 import { AdminListQuestsUseCase } from '@/application/usecases/quest/admin-list-quests.usecase';
@@ -10,6 +11,7 @@ import { HTTP_STATUS } from '@/constants/http-status';
 import type { Quest } from '@/domain/entities/quest.entity';
 
 import { prisma } from '@/infrastructure/db/prisma.client';
+import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 import { adminMiddleware } from '@/presentation/middlewares/admin.middleware';
@@ -65,4 +67,12 @@ export const adminRoutes = new Hono()
     const usecase = new AdminDeleteQuestUseCase(quests());
     await usecase.execute(id);
     return c.body(null, 204);
+  })
+  .get('/characters', async (c) => {
+    const usecase = new AdminListCharactersUseCase(
+      prisma,
+      new CharacterPrismaRepository(prisma),
+    );
+    const list = await usecase.execute();
+    return c.json(list, HTTP_STATUS.OK);
   });

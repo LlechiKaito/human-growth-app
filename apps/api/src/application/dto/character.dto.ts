@@ -18,3 +18,12 @@ export interface CharacterDetailDto {
   xpToNextLevel: number | null;
   skills: SkillNodeDto[];
 }
+
+export interface CharacterSummaryDto {
+  id: string;
+  name: string;
+  className: string;
+  level: number;
+  email: string;
+  department: string | null;
+}

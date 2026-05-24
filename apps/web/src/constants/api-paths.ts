@@ -9,4 +9,5 @@ export const API_PATHS = {
   AUTH_ME: '/api/auth/me',
   ADMIN_QUESTS: '/api/admin/quests',
   ADMIN_QUEST_BY_ID: (id: string) => `/api/admin/quests/${id}`,
+  ADMIN_CHARACTERS: '/api/admin/characters',
 } as const;
