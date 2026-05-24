@@ -103,6 +103,56 @@ aws cloudformation wait stack-delete-complete --stack-name human-growth-dev-data
 
 ---
 
+## 初期管理者ユーザーを追加する
+
+デプロイ後、Cognito User Pool に `admins` グループ が作成される。
+管理画面 (`/admin/*`) にアクセスできるのは、このグループに属するユーザーのみ。
+
+### 手順
+
+```bash
+# 1. UserPoolId を取得
+USER_POOL_ID=$(aws cloudformation describe-stacks \
+  --stack-name human-growth-dev-auth \
+  --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)
+echo $USER_POOL_ID
+
+# 2. (まだなら) アプリで普通に signup してユーザーを作る
+#    → ブラウザで https://<CloudFront>/signup から登録
+
+# 3. そのユーザーを admins グループに追加
+aws cognito-idp admin-add-user-to-group \
+  --user-pool-id "$USER_POOL_ID" \
+  --username "admin@your-domain.example" \
+  --group-name admins
+
+# 4. ブラウザで一度ログアウト → 再ログイン (新しい JWT に cognito:groups が乗る)
+#    → ヘッダーに「管理 (クエスト)」リンクが出る
+```
+
+> JWT は ID トークンの中に `cognito:groups` クレームを含む。グループ追加後は **必ず再ログイン** して新しいトークンを取得する必要がある(既存トークンは古いまま)。
+
+### グループから外す
+
+```bash
+aws cognito-idp admin-remove-user-from-group \
+  --user-pool-id "$USER_POOL_ID" \
+  --username "admin@your-domain.example" \
+  --group-name admins
+```
+
+### ローカル開発で admin テスト
+
+`.env` または `docker-compose.yml` の api 環境変数に `ADMIN_EMAILS` を設定:
+
+```bash
+ADMIN_EMAILS=admin@example.com,boss@example.com
+```
+
+LocalAuthProvider はこのリストにマッチするメールアドレスでログインしたユーザーに `admins` グループを付与する。
+
+---
+
 ## RDS マイグレーション (初回デプロイ後)
 
 App Runner 起動時点では RDS にスキーマが無い。`/api/auth/signup` 等で 500 になる前にマイグレーションが必要。

@@ -25,6 +25,7 @@ export interface MeDto {
   email: string;
   displayName: string;
   department: string | null;
+  isAdmin: boolean;
 }
 
 export const signup = async (

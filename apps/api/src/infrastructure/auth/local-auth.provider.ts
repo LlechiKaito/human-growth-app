@@ -2,11 +2,12 @@ import { createHmac, randomUUID } from 'node:crypto';
 
 import { SignJWT, jwtVerify } from 'jose';
 
-import type {
-  AuthTokens,
-  AuthenticatedUser,
-  LoginInput,
-  SignupInput,
+import {
+  ADMINS_GROUP,
+  type AuthTokens,
+  type AuthenticatedUser,
+  type LoginInput,
+  type SignupInput,
 } from '@/application/dto/auth.dto';
 import { ERROR_CODES } from '@/constants/error-codes';
 import { DomainError } from '@/domain/errors/domain-errors';
@@ -26,13 +27,18 @@ const ID_TOKEN_TTL_SEC = 60 * 60;
  * - パスワードはメモリ上に SHA-256 ハッシュで保管
  * - JWT は HS256 (ローカルシークレット)
  * - 本番では CognitoAuthProvider に切り替える
+ *
+ * adminEmails: 管理者として扱うメールアドレスのリスト。
+ *   この一覧に含まれるユーザーの JWT には groups: ['admins'] が埋め込まれる。
  */
 export class LocalAuthProvider implements AuthProvider {
   private readonly users = new Map<string, StoredUser>();
   private readonly secret: Uint8Array;
+  private readonly adminEmails: Set<string>;
 
-  constructor(secret: string) {
+  constructor(secret: string, adminEmails: string[] = []) {
     this.secret = new TextEncoder().encode(secret);
+    this.adminEmails = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
   }
 
   async signup(input: SignupInput): Promise<{ sub: string; tokens: AuthTokens }> {
@@ -64,9 +70,11 @@ export class LocalAuthProvider implements AuthProvider {
         issuer: 'local-auth',
         audience: 'human-growth',
       });
+      const groups = Array.isArray(payload.groups) ? (payload.groups as string[]) : [];
       return {
         sub: payload.sub as string,
         email: payload.email as string,
+        groups,
       };
     } catch {
       throw new DomainError(ERROR_CODES.UNAUTHORIZED, 'Invalid token');
@@ -79,7 +87,8 @@ export class LocalAuthProvider implements AuthProvider {
 
   private async issueTokens(sub: string, email: string): Promise<AuthTokens> {
     const now = Math.floor(Date.now() / 1000);
-    const idToken = await new SignJWT({ email })
+    const groups = this.adminEmails.has(email.toLowerCase()) ? [ADMINS_GROUP] : [];
+    const idToken = await new SignJWT({ email, groups })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(sub)
       .setIssuer('local-auth')

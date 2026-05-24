@@ -19,7 +19,10 @@ export const getAuthProvider = (): AuthProvider => {
       clientId: env.COGNITO_CLIENT_ID,
     });
   } else {
-    cached = new LocalAuthProvider(env.AUTH_LOCAL_SECRET);
+    // process.env を直接読む (テストが beforeEach で書き換えられるように)
+    const raw = process.env.ADMIN_EMAILS ?? '';
+    const adminEmails = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    cached = new LocalAuthProvider(env.AUTH_LOCAL_SECRET, adminEmails);
   }
   return cached;
 };

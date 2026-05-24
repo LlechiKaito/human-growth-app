@@ -46,6 +46,17 @@ export class AuthStack extends Stack {
       refreshTokenValidity: undefined,
     });
 
+    // 管理者グループ。本グループに属するユーザーは /admin/* 配下にアクセス可能。
+    // 初期管理者の追加は AWS CLI で実施 (docs/deploy.md 参照):
+    //   aws cognito-idp admin-add-user-to-group \
+    //     --user-pool-id <UserPoolId> --username <email> --group-name admins
+    new cognito.CfnUserPoolGroup(this, 'AdminsGroup', {
+      userPoolId: userPool.userPoolId,
+      groupName: 'admins',
+      description: 'Administrators of the Skill Quest RPG',
+      precedence: 1,
+    });
+
     this.userPool = userPool;
     this.userPoolClient = userPoolClient;
 
