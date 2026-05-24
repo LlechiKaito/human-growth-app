@@ -1,5 +1,6 @@
 import { DocumentUploader } from '@/features/document/components/DocumentUploader';
-import type { QuestDto } from '@/features/quest/api';
+import { useQuestDocuments } from '@/features/document/hooks/useDocuments';
+import type { QuestDto, QuestRequirement } from '@/features/quest/api';
 
 const DIFFICULTY_COLOR: Record<QuestDto['difficulty'], string> = {
   EASY: 'text-rpg-xp',
@@ -14,6 +15,12 @@ const STATUS_LABEL: Record<QuestDto['status'], string> = {
   COMPLETED: '完了',
 };
 
+const REQUIREMENT_BADGE_CLASS: Record<QuestRequirement, string> = {
+  NONE: '',
+  OPTIONAL: 'bg-gray-700 text-gray-200',
+  REQUIRED: 'bg-rpg-accent text-rpg-bg',
+};
+
 interface QuestCardProps {
   quest: QuestDto;
   onComplete: (questId: string) => void;
@@ -22,6 +29,15 @@ interface QuestCardProps {
 
 export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) => {
   const isCompleted = quest.status === 'COMPLETED';
+  const showDocuments = quest.documentRequirement !== 'NONE';
+  // documentRequirement=REQUIRED のとき、APPROVED な書類が無いと完了不可
+  const docsQuery = useQuestDocuments(quest.id);
+  const hasApprovedDoc = (docsQuery.data ?? []).some((d) => d.status === 'APPROVED');
+  const docGateBlocked = quest.documentRequirement === 'REQUIRED' && !hasApprovedDoc;
+  const testGateBlocked = quest.testRequirement === 'REQUIRED'; // 機能未実装
+
+  const blocked = docGateBlocked || testGateBlocked;
+
   return (
     <div
       className={
@@ -33,12 +49,26 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={DIFFICULTY_COLOR[quest.difficulty]}>◆</span>
             <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               {quest.difficulty}
             </span>
             <span className="text-xs text-gray-500">— {STATUS_LABEL[quest.status]}</span>
+            {quest.documentRequirement !== 'NONE' && (
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-semibold ${REQUIREMENT_BADGE_CLASS[quest.documentRequirement]}`}
+              >
+                書類{quest.documentRequirement === 'REQUIRED' ? '必須' : '任意'}
+              </span>
+            )}
+            {quest.testRequirement !== 'NONE' && (
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-semibold ${REQUIREMENT_BADGE_CLASS[quest.testRequirement]}`}
+              >
+                テスト{quest.testRequirement === 'REQUIRED' ? '必須' : '任意'}
+              </span>
+            )}
           </div>
           <h3 className="mt-1 font-semibold text-white">{quest.title}</h3>
           <p className="mt-1 text-sm text-gray-400">{quest.description}</p>
@@ -49,19 +79,33 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
         </div>
       </div>
       {!isCompleted && (
-        <button
-          type="button"
-          onClick={() => onComplete(quest.id)}
-          disabled={isCompleting}
-          className="mt-3 w-full rounded bg-rpg-accent px-3 py-2 text-sm font-semibold text-rpg-bg hover:opacity-90 disabled:opacity-50"
-          data-testid={`complete-${quest.id}`}
-        >
-          {isCompleting ? '完了処理中...' : 'クエストを完了する'}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => onComplete(quest.id)}
+            disabled={isCompleting || blocked}
+            className="mt-3 w-full rounded bg-rpg-accent px-3 py-2 text-sm font-semibold text-rpg-bg hover:opacity-90 disabled:opacity-50"
+            data-testid={`complete-${quest.id}`}
+          >
+            {isCompleting ? '完了処理中...' : 'クエストを完了する'}
+          </button>
+          {docGateBlocked && (
+            <p className="mt-1 text-xs text-rpg-accent">
+              ※ 承認済みの書類を 1 件以上アップロードしてください
+            </p>
+          )}
+          {testGateBlocked && (
+            <p className="mt-1 text-xs text-rpg-accent">
+              ※ テスト機能は未実装のため、このクエストは現時点で完了できません
+            </p>
+          )}
+        </>
       )}
-      <div className="mt-3">
-        <DocumentUploader questId={quest.id} />
-      </div>
+      {showDocuments && (
+        <div className="mt-3">
+          <DocumentUploader questId={quest.id} />
+        </div>
+      )}
     </div>
   );
 };

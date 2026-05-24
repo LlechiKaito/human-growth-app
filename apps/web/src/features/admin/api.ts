@@ -1,5 +1,5 @@
 import { API_PATHS } from '@/constants/api-paths';
-import type { QuestDifficulty, QuestDto } from '@/features/quest/api';
+import type { QuestDifficulty, QuestDto, QuestRequirement } from '@/features/quest/api';
 import { httpClient } from '@/lib/http-client';
 
 export interface QuestUpsertInput {
@@ -8,6 +8,8 @@ export interface QuestUpsertInput {
   difficulty?: QuestDifficulty;
   rewardXp: number;
   assignedCharacterId?: string | null;
+  documentRequirement?: QuestRequirement;
+  testRequirement?: QuestRequirement;
 }
 
 export const adminListQuests = async (): Promise<QuestDto[]> => {

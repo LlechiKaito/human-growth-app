@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { Quest, type QuestDifficulty } from '@/domain/entities/quest.entity';
+import {
+  Quest,
+  type QuestDifficulty,
+  type QuestRequirement,
+} from '@/domain/entities/quest.entity';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
 import { ExperiencePoint } from '@/domain/value-objects/experience-point.vo';
 
@@ -10,6 +14,8 @@ export interface AdminCreateQuestInput {
   difficulty: QuestDifficulty;
   rewardXp: number;
   assignedCharacterId?: string | null;
+  documentRequirement?: QuestRequirement;
+  testRequirement?: QuestRequirement;
 }
 
 /**
@@ -28,6 +34,8 @@ export class AdminCreateQuestUseCase {
       rewardXp: ExperiencePoint.create(input.rewardXp),
       status: 'OPEN',
       assignedCharacterId: input.assignedCharacterId ?? null,
+      documentRequirement: input.documentRequirement ?? 'NONE',
+      testRequirement: input.testRequirement ?? 'NONE',
       createdAt: now,
       updatedAt: now,
     });

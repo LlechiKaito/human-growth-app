@@ -2,6 +2,7 @@ import { ExperiencePoint } from '@/domain/value-objects/experience-point.vo';
 
 export type QuestDifficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EPIC';
 export type QuestStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+export type QuestRequirement = 'NONE' | 'OPTIONAL' | 'REQUIRED';
 
 export interface QuestProps {
   id: string;
@@ -11,6 +12,8 @@ export interface QuestProps {
   rewardXp: ExperiencePoint;
   status: QuestStatus;
   assignedCharacterId: string | null;
+  documentRequirement: QuestRequirement;
+  testRequirement: QuestRequirement;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +51,14 @@ export class Quest {
 
   get assignedCharacterId(): string | null {
     return this.props.assignedCharacterId;
+  }
+
+  get documentRequirement(): QuestRequirement {
+    return this.props.documentRequirement;
+  }
+
+  get testRequirement(): QuestRequirement {
+    return this.props.testRequirement;
   }
 
   isCompleted(): boolean {

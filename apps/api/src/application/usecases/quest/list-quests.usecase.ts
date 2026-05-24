@@ -1,4 +1,4 @@
-import type { QuestDto } from '@/application/dto/quest.dto';
+import { toQuestDto, type QuestDto } from '@/application/dto/quest.dto';
 import { ERROR_CODES } from '@/constants/error-codes';
 import { DomainError } from '@/domain/errors/domain-errors';
 import type { CharacterRepository } from '@/domain/repositories/character.repository';
@@ -20,14 +20,6 @@ export class ListQuestsUseCase {
     if (!character) throw new DomainError(ERROR_CODES.CHARACTER_NOT_FOUND);
 
     const quests = await this.quests.listAssignedTo(character.id);
-    return quests.map((q) => ({
-      id: q.id,
-      title: q.title,
-      description: q.description,
-      difficulty: q.difficulty,
-      rewardXp: q.rewardXp.toNumber(),
-      status: q.status,
-      assignedCharacterId: q.assignedCharacterId,
-    }));
+    return quests.map(toQuestDto);
   }
 }
