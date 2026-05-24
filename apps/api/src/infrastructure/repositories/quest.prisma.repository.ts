@@ -1,6 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
 
-import { Quest, type QuestDifficulty, type QuestStatus } from '@/domain/entities/quest.entity';
+import {
+  Quest,
+  type QuestDifficulty,
+  type QuestRequirement,
+  type QuestStatus,
+} from '@/domain/entities/quest.entity';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
 import { ExperiencePoint } from '@/domain/value-objects/experience-point.vo';
 
@@ -12,6 +17,8 @@ type QuestRow = {
   rewardXp: number;
   status: QuestStatus;
   assignedCharacterId: string | null;
+  documentRequirement: QuestRequirement;
+  testRequirement: QuestRequirement;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +57,8 @@ export class QuestPrismaRepository implements QuestRepository {
         rewardXp: quest.rewardXp.toNumber(),
         status: quest.status,
         assignedCharacterId: quest.assignedCharacterId,
+        documentRequirement: quest.documentRequirement,
+        testRequirement: quest.testRequirement,
       },
     });
     return this.toEntity(row);
@@ -79,6 +88,8 @@ export class QuestPrismaRepository implements QuestRepository {
       difficulty?: QuestDifficulty;
       rewardXp?: number;
       assignedCharacterId?: string | null;
+      documentRequirement?: QuestRequirement;
+      testRequirement?: QuestRequirement;
     },
   ): Promise<Quest> {
     const row = await this.prisma.quest.update({ where: { id }, data: fields });
@@ -94,6 +105,8 @@ export class QuestPrismaRepository implements QuestRepository {
       rewardXp: ExperiencePoint.create(row.rewardXp),
       status: row.status,
       assignedCharacterId: row.assignedCharacterId,
+      documentRequirement: row.documentRequirement,
+      testRequirement: row.testRequirement,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

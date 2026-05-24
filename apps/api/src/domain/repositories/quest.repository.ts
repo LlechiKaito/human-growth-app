@@ -1,4 +1,4 @@
-import type { Quest } from '@/domain/entities/quest.entity';
+import type { Quest, QuestRequirement } from '@/domain/entities/quest.entity';
 
 export interface QuestRepository {
   findById(id: string): Promise<Quest | null>;
@@ -13,5 +13,7 @@ export interface QuestRepository {
     difficulty?: Quest['difficulty'];
     rewardXp?: number;
     assignedCharacterId?: string | null;
+    documentRequirement?: QuestRequirement;
+    testRequirement?: QuestRequirement;
   }): Promise<Quest>;
 }

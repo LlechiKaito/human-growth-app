@@ -1,5 +1,9 @@
 import { ERROR_CODES } from '@/constants/error-codes';
-import type { Quest, QuestDifficulty } from '@/domain/entities/quest.entity';
+import type {
+  Quest,
+  QuestDifficulty,
+  QuestRequirement,
+} from '@/domain/entities/quest.entity';
 import { QuestNotFoundError } from '@/domain/errors/domain-errors';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
 
@@ -9,6 +13,8 @@ export interface AdminUpdateQuestInput {
   difficulty?: QuestDifficulty;
   rewardXp?: number;
   assignedCharacterId?: string | null;
+  documentRequirement?: QuestRequirement;
+  testRequirement?: QuestRequirement;
 }
 
 /**

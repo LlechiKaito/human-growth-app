@@ -14,6 +14,8 @@ const domainErrorToStatus = (code: ErrorCode): HttpStatus => {
     case ERROR_CODES.NOT_FOUND:
       return HTTP_STATUS.NOT_FOUND;
     case ERROR_CODES.QUEST_ALREADY_COMPLETED:
+    case ERROR_CODES.QUEST_DOCUMENT_REQUIRED:
+    case ERROR_CODES.QUEST_TEST_REQUIRED:
     case ERROR_CODES.CONFLICT:
       return HTTP_STATUS.CONFLICT;
     case ERROR_CODES.UNAUTHORIZED:

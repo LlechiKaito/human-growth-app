@@ -130,4 +130,132 @@ describe('Quests API', () => {
     });
     expect(res.status).toBe(403);
   });
+
+  describe('completion requirements', () => {
+    it('documentRequirement=REQUIRED blocks completion without APPROVED document', async () => {
+      const { token, characterId } = await bootstrapUser(app, 'req1@example.com');
+      const quest = await prismaForTest.quest.create({
+        data: {
+          title: 'Doc Required',
+          description: '',
+          difficulty: 'NORMAL',
+          rewardXp: 100,
+          assignedCharacterId: characterId,
+          documentRequirement: 'REQUIRED',
+        },
+      });
+
+      const res = await app.request(`/api/quests/${quest.id}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(409);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe('QUEST_DOCUMENT_REQUIRED');
+    });
+
+    it('documentRequirement=REQUIRED blocks completion when only PENDING document exists', async () => {
+      const { token, characterId } = await bootstrapUser(app, 'req2@example.com');
+      const quest = await prismaForTest.quest.create({
+        data: {
+          title: 'Doc Required',
+          description: '',
+          difficulty: 'NORMAL',
+          rewardXp: 100,
+          assignedCharacterId: characterId,
+          documentRequirement: 'REQUIRED',
+        },
+      });
+      await prismaForTest.questDocument.create({
+        data: {
+          questId: quest.id,
+          uploadedByCharacterId: characterId,
+          s3Key: `quests/${quest.id}/pending.pdf`,
+          filename: 'pending.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 100,
+          status: 'PENDING',
+        },
+      });
+
+      const res = await app.request(`/api/quests/${quest.id}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(409);
+    });
+
+    it('documentRequirement=REQUIRED allows completion with APPROVED document', async () => {
+      const { token, characterId } = await bootstrapUser(app, 'req3@example.com');
+      const quest = await prismaForTest.quest.create({
+        data: {
+          title: 'Doc Required',
+          description: '',
+          difficulty: 'NORMAL',
+          rewardXp: 100,
+          assignedCharacterId: characterId,
+          documentRequirement: 'REQUIRED',
+        },
+      });
+      await prismaForTest.questDocument.create({
+        data: {
+          questId: quest.id,
+          uploadedByCharacterId: characterId,
+          s3Key: `quests/${quest.id}/ok.pdf`,
+          filename: 'ok.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 100,
+          status: 'APPROVED',
+        },
+      });
+
+      const res = await app.request(`/api/quests/${quest.id}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it('documentRequirement=OPTIONAL allows completion without any document', async () => {
+      const { token, characterId } = await bootstrapUser(app, 'req4@example.com');
+      const quest = await prismaForTest.quest.create({
+        data: {
+          title: 'Doc Optional',
+          description: '',
+          difficulty: 'NORMAL',
+          rewardXp: 100,
+          assignedCharacterId: characterId,
+          documentRequirement: 'OPTIONAL',
+        },
+      });
+
+      const res = await app.request(`/api/quests/${quest.id}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it('testRequirement=REQUIRED blocks completion (feature not implemented)', async () => {
+      const { token, characterId } = await bootstrapUser(app, 'req5@example.com');
+      const quest = await prismaForTest.quest.create({
+        data: {
+          title: 'Test Required',
+          description: '',
+          difficulty: 'NORMAL',
+          rewardXp: 100,
+          assignedCharacterId: characterId,
+          testRequirement: 'REQUIRED',
+        },
+      });
+
+      const res = await app.request(`/api/quests/${quest.id}/complete`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(409);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe('QUEST_TEST_REQUIRED');
+    });
+  });
 });

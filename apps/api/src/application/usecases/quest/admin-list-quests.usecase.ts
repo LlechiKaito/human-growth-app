@@ -1,4 +1,4 @@
-import type { QuestDto } from '@/application/dto/quest.dto';
+import { toQuestDto, type QuestDto } from '@/application/dto/quest.dto';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
 
 /**
@@ -9,14 +9,6 @@ export class AdminListQuestsUseCase {
 
   async execute(): Promise<QuestDto[]> {
     const list = await this.quests.listAll();
-    return list.map((q) => ({
-      id: q.id,
-      title: q.title,
-      description: q.description,
-      difficulty: q.difficulty,
-      rewardXp: q.rewardXp.toNumber(),
-      status: q.status,
-      assignedCharacterId: q.assignedCharacterId,
-    }));
+    return list.map(toQuestDto);
   }
 }

@@ -3,6 +3,7 @@ import { httpClient } from '@/lib/http-client';
 
 export type QuestDifficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EPIC';
 export type QuestStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+export type QuestRequirement = 'NONE' | 'OPTIONAL' | 'REQUIRED';
 
 export interface QuestDto {
   id: string;
@@ -12,6 +13,8 @@ export interface QuestDto {
   rewardXp: number;
   status: QuestStatus;
   assignedCharacterId: string | null;
+  documentRequirement: QuestRequirement;
+  testRequirement: QuestRequirement;
 }
 
 export interface CompleteQuestResult {

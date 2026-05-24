@@ -113,4 +113,65 @@ describe('Admin Quest CRUD', () => {
     const me = (await res.json()) as { isAdmin: boolean };
     expect(me.isAdmin).toBe(false);
   });
+
+  it('admin can create quest with documentRequirement=REQUIRED', async () => {
+    const { tokens } = await signup(app, ADMIN_EMAIL);
+    const auth = { Authorization: `Bearer ${tokens.idToken}` };
+
+    const createRes = await app.request('/api/admin/quests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({
+        title: 'With Doc Required',
+        rewardXp: 100,
+        documentRequirement: 'REQUIRED',
+        testRequirement: 'NONE',
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as {
+      documentRequirement: string;
+      testRequirement: string;
+    };
+    expect(created.documentRequirement).toBe('REQUIRED');
+    expect(created.testRequirement).toBe('NONE');
+  });
+
+  it('admin can update a quest to switch documentRequirement', async () => {
+    const { tokens } = await signup(app, ADMIN_EMAIL);
+    const auth = { Authorization: `Bearer ${tokens.idToken}` };
+
+    const createRes = await app.request('/api/admin/quests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ title: 'Q', rewardXp: 50 }),
+    });
+    const { id } = (await createRes.json()) as { id: string };
+
+    const updRes = await app.request(`/api/admin/quests/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ documentRequirement: 'OPTIONAL' }),
+    });
+    expect(updRes.status).toBe(200);
+    const updated = (await updRes.json()) as { documentRequirement: string };
+    expect(updated.documentRequirement).toBe('OPTIONAL');
+  });
+
+  it('default for documentRequirement/testRequirement is NONE', async () => {
+    const { tokens } = await signup(app, ADMIN_EMAIL);
+    const auth = { Authorization: `Bearer ${tokens.idToken}` };
+
+    const createRes = await app.request('/api/admin/quests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ title: 'Default Q', rewardXp: 50 }),
+    });
+    const created = (await createRes.json()) as {
+      documentRequirement: string;
+      testRequirement: string;
+    };
+    expect(created.documentRequirement).toBe('NONE');
+    expect(created.testRequirement).toBe('NONE');
+  });
 });

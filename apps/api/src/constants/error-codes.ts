@@ -9,6 +9,8 @@ export const ERROR_CODES = {
   CHARACTER_NOT_FOUND: 'CHARACTER_NOT_FOUND',
   QUEST_NOT_FOUND: 'QUEST_NOT_FOUND',
   QUEST_ALREADY_COMPLETED: 'QUEST_ALREADY_COMPLETED',
+  QUEST_DOCUMENT_REQUIRED: 'QUEST_DOCUMENT_REQUIRED',
+  QUEST_TEST_REQUIRED: 'QUEST_TEST_REQUIRED',
   SKILL_NOT_FOUND: 'SKILL_NOT_FOUND',
   EMPLOYEE_NOT_FOUND: 'EMPLOYEE_NOT_FOUND',
 } as const;
@@ -26,6 +28,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.CHARACTER_NOT_FOUND]: 'Character not found',
   [ERROR_CODES.QUEST_NOT_FOUND]: 'Quest not found',
   [ERROR_CODES.QUEST_ALREADY_COMPLETED]: 'Quest already completed',
+  [ERROR_CODES.QUEST_DOCUMENT_REQUIRED]: 'Approved document is required to complete this quest',
+  [ERROR_CODES.QUEST_TEST_REQUIRED]: 'Test feature is not yet available for this quest',
   [ERROR_CODES.SKILL_NOT_FOUND]: 'Skill not found',
   [ERROR_CODES.EMPLOYEE_NOT_FOUND]: 'Employee not found',
 };

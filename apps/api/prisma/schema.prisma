@@ -101,6 +101,16 @@ enum QuestStatus {
   COMPLETED
 }
 
+// クエスト完了の要件レベル。
+// NONE     : その要件は使わない (UI も表示しない)
+// OPTIONAL : 提出/受験できるが、完了には不要
+// REQUIRED : 提出/合格が完了の必須条件
+enum QuestRequirement {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
 model Quest {
   id                   String           @id @default(uuid())
   title                String
@@ -109,6 +119,8 @@ model Quest {
   rewardXp             Int              @map("reward_xp")
   status               QuestStatus      @default(OPEN)
   assignedCharacterId  String?          @map("assigned_character_id")
+  documentRequirement  QuestRequirement @default(NONE) @map("document_requirement")
+  testRequirement      QuestRequirement @default(NONE) @map("test_requirement")
   completedAt          DateTime?        @map("completed_at")
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
