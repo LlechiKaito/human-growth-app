@@ -89,4 +89,71 @@ describe('Auth API', () => {
     expect(body.email).toBe('test@example.com');
     expect(body.displayName).toBe('Test User');
   });
+
+  /**
+   * JIT (Just-In-Time) provisioning:
+   * 認証プロバイダ側 (Cognito / LocalAuth) にユーザーがあるが、
+   * ローカル DB の employees 行が無い状態 (例: 本番で signup されたユーザーを別 DB で受け取る)
+   * での login / me が落ちないこと。
+   */
+  describe('JIT employee bootstrap', () => {
+    it('POST /auth/login auto-creates Employee if missing', async () => {
+      await signup({ email: 'jit-login@example.com', displayName: 'Will Be Recreated' });
+      // 認証プロバイダ側のユーザーだけ残し、DB の Employee を削除して再現
+      await prismaForTest.employee.deleteMany({ where: { email: 'jit-login@example.com' } });
+
+      const res = await app.request('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'jit-login@example.com', password: 'password123' }),
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { employeeId: string; tokens: { idToken: string } };
+      expect(body.employeeId).toBeTypeOf('string');
+
+      const recreated = await prismaForTest.employee.findUnique({
+        where: { email: 'jit-login@example.com' },
+      });
+      expect(recreated).toBeTruthy();
+      // displayName はメアドのローカル部にフォールバック
+      expect(recreated?.displayName).toBe('jit-login');
+    });
+
+    it('GET /auth/me auto-creates Employee if missing', async () => {
+      const signupRes = await signup({ email: 'jit-me@example.com', displayName: 'Original' });
+      const { tokens } = (await signupRes.json()) as { tokens: { idToken: string } };
+      await prismaForTest.employee.deleteMany({ where: { email: 'jit-me@example.com' } });
+
+      const res = await app.request('/api/auth/me', {
+        headers: { Authorization: `Bearer ${tokens.idToken}` },
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { email: string; displayName: string };
+      expect(body.email).toBe('jit-me@example.com');
+      expect(body.displayName).toBe('jit-me');
+
+      const recreated = await prismaForTest.employee.findUnique({
+        where: { email: 'jit-me@example.com' },
+      });
+      expect(recreated).toBeTruthy();
+    });
+
+    it('JIT bootstrap does not duplicate when Employee already exists', async () => {
+      const signupRes = await signup({ email: 'no-dup@example.com' });
+      const { tokens } = (await signupRes.json()) as { tokens: { idToken: string } };
+
+      // /me 2 回呼んで重複しないこと
+      await app.request('/api/auth/me', {
+        headers: { Authorization: `Bearer ${tokens.idToken}` },
+      });
+      await app.request('/api/auth/me', {
+        headers: { Authorization: `Bearer ${tokens.idToken}` },
+      });
+
+      const count = await prismaForTest.employee.count({
+        where: { email: 'no-dup@example.com' },
+      });
+      expect(count).toBe(1);
+    });
+  });
 });
