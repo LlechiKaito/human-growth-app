@@ -46,6 +46,8 @@ const Content = () => {
           difficulty: quest.difficulty,
           rewardXp: quest.rewardXp,
           assignedCharacterId: quest.assignedCharacterId,
+          documentRequirement: quest.documentRequirement,
+          testRequirement: quest.testRequirement,
         }}
         submitLabel="更新する"
         isPending={update.isPending}
@@ -56,6 +58,14 @@ const Content = () => {
           )
         }
       />
+      {quest.testRequirement !== 'NONE' && (
+        <a
+          href={ROUTES.ADMIN_QUEST_TEST_EDIT(quest.id)}
+          className="self-start rounded border border-rpg-accent px-3 py-2 text-sm font-semibold text-rpg-accent hover:bg-rpg-accent hover:text-rpg-bg"
+        >
+          テスト (クイズ) の設問を編集する →
+        </a>
+      )}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
 import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
 import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
 import { QuestDocumentPrismaRepository } from '@/infrastructure/repositories/quest-document.prisma.repository';
+import { QuestTestPrismaRepository } from '@/infrastructure/repositories/quest-test.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 export class CompleteQuestUseCase {
@@ -23,6 +24,7 @@ export class CompleteQuestUseCase {
       const characters = new CharacterPrismaRepository(tx as PrismaClient);
       const quests = new QuestPrismaRepository(tx as PrismaClient);
       const documents = new QuestDocumentPrismaRepository(tx as PrismaClient);
+      const tests = new QuestTestPrismaRepository(tx as PrismaClient);
 
       const employee = await employees.findByCognitoSub(cognitoSub);
       if (!employee) throw new DomainError(ERROR_CODES.EMPLOYEE_NOT_FOUND);
@@ -46,8 +48,8 @@ export class CompleteQuestUseCase {
         if (!hasApproved) throw new DomainError(ERROR_CODES.QUEST_DOCUMENT_REQUIRED);
       }
       if (quest.testRequirement === 'REQUIRED') {
-        // テスト機能は次 PR で実装。それまでは REQUIRED 設定のクエストは完了不可
-        throw new DomainError(ERROR_CODES.QUEST_TEST_REQUIRED);
+        const passed = await tests.hasPassedAttempt(questId, character.id);
+        if (!passed) throw new DomainError(ERROR_CODES.QUEST_TEST_REQUIRED);
       }
 
       const oldLevel = character.level;

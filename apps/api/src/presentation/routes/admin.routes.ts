@@ -9,6 +9,8 @@ import { AdminCreateQuestUseCase } from '@/application/usecases/quest/admin-crea
 import { AdminDeleteQuestUseCase } from '@/application/usecases/quest/admin-delete-quest.usecase';
 import { AdminListQuestsUseCase } from '@/application/usecases/quest/admin-list-quests.usecase';
 import { AdminUpdateQuestUseCase } from '@/application/usecases/quest/admin-update-quest.usecase';
+import { AdminGetQuestTestUseCase } from '@/application/usecases/quest-test/admin-get-quest-test.usecase';
+import { AdminUpsertQuestTestUseCase } from '@/application/usecases/quest-test/admin-upsert-quest-test.usecase';
 import { toQuestDto } from '@/application/dto/quest.dto';
 import { HTTP_STATUS } from '@/constants/http-status';
 
@@ -16,6 +18,7 @@ import { prisma } from '@/infrastructure/db/prisma.client';
 import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
 import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
 import { QuestDocumentPrismaRepository } from '@/infrastructure/repositories/quest-document.prisma.repository';
+import { QuestTestPrismaRepository } from '@/infrastructure/repositories/quest-test.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 import { adminMiddleware } from '@/presentation/middlewares/admin.middleware';
@@ -40,9 +43,24 @@ const rejectSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
+const testUpsertSchema = z.object({
+  questions: z
+    .array(
+      z.object({
+        text: z.string().min(1).max(500),
+        choices: z
+          .array(z.object({ text: z.string().min(1).max(200), isCorrect: z.boolean() }))
+          .min(2)
+          .max(4),
+      }),
+    )
+    .max(20),
+});
+
 const quests = () => new QuestPrismaRepository(prisma);
 const documents = () => new QuestDocumentPrismaRepository(prisma);
 const employees = () => new EmployeePrismaRepository(prisma);
+const tests = () => new QuestTestPrismaRepository(prisma);
 
 export const adminRoutes = new Hono()
   .use('*', authMiddleware)
@@ -97,5 +115,18 @@ export const adminRoutes = new Hono()
     const { reason } = c.req.valid('json');
     const usecase = new AdminReviewDocumentUseCase(documents(), employees());
     const result = await usecase.reject(sub, id, reason);
+    return c.json(result, HTTP_STATUS.OK);
+  })
+  .get('/quests/:id/test', async (c) => {
+    const id = c.req.param('id');
+    const usecase = new AdminGetQuestTestUseCase(quests(), tests());
+    const result = await usecase.execute(id);
+    return c.json(result, HTTP_STATUS.OK);
+  })
+  .put('/quests/:id/test', zValidator('json', testUpsertSchema), async (c) => {
+    const id = c.req.param('id');
+    const input = c.req.valid('json');
+    const usecase = new AdminUpsertQuestTestUseCase(quests(), tests());
+    const result = await usecase.execute(id, input);
     return c.json(result, HTTP_STATUS.OK);
   });

@@ -1,6 +1,9 @@
+import { useState } from 'react';
+
 import { DocumentUploader } from '@/features/document/components/DocumentUploader';
 import { useQuestDocuments } from '@/features/document/hooks/useDocuments';
 import type { QuestDto, QuestRequirement } from '@/features/quest/api';
+import { TestModal } from '@/features/quest-test/components/TestModal';
 
 const DIFFICULTY_COLOR: Record<QuestDto['difficulty'], string> = {
   EASY: 'text-rpg-xp',
@@ -30,11 +33,13 @@ interface QuestCardProps {
 export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) => {
   const isCompleted = quest.status === 'COMPLETED';
   const showDocuments = quest.documentRequirement !== 'NONE';
+  const showTest = quest.testRequirement !== 'NONE';
+  const [testOpen, setTestOpen] = useState(false);
   // documentRequirement=REQUIRED のとき、APPROVED な書類が無いと完了不可
   const docsQuery = useQuestDocuments(quest.id);
   const hasApprovedDoc = (docsQuery.data ?? []).some((d) => d.status === 'APPROVED');
   const docGateBlocked = quest.documentRequirement === 'REQUIRED' && !hasApprovedDoc;
-  const testGateBlocked = quest.testRequirement === 'REQUIRED'; // 機能未実装
+  const testGateBlocked = quest.testRequirement === 'REQUIRED' && !quest.hasPassedTest;
 
   const blocked = docGateBlocked || testGateBlocked;
 
@@ -96,10 +101,23 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
           )}
           {testGateBlocked && (
             <p className="mt-1 text-xs text-rpg-accent">
-              ※ テスト機能は未実装のため、このクエストは現時点で完了できません
+              ※ テストに合格してください
             </p>
           )}
         </>
+      )}
+      {showTest && !isCompleted && (
+        <button
+          type="button"
+          onClick={() => setTestOpen(true)}
+          className="mt-2 w-full rounded border border-rpg-accent px-3 py-2 text-sm font-semibold text-rpg-accent hover:bg-rpg-accent hover:text-rpg-bg"
+          data-testid={`open-test-${quest.id}`}
+        >
+          {quest.hasPassedTest ? 'テスト合格済み (もう一度受ける)' : 'テストを受ける'}
+        </button>
+      )}
+      {showTest && (
+        <TestModal questId={quest.id} open={testOpen} onClose={() => setTestOpen(false)} />
       )}
       {showDocuments && (
         <div className="mt-3">

@@ -15,6 +15,12 @@ export interface QuestDto {
   assignedCharacterId: string | null;
   documentRequirement: QuestRequirement;
   testRequirement: QuestRequirement;
+  /**
+   * ログイン中ユーザーがこのクエストのテストに合格済みかどうか。
+   * - 管理者用エンドポイント (`/admin/quests`) では undefined
+   * - 受講者用エンドポイント (`/quests`) でのみ true/false
+   */
+  hasPassedTest?: boolean;
 }
 
 export const toQuestDto = (q: Quest): QuestDto => ({

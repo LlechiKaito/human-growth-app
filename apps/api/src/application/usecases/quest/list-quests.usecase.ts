@@ -4,12 +4,14 @@ import { DomainError } from '@/domain/errors/domain-errors';
 import type { CharacterRepository } from '@/domain/repositories/character.repository';
 import type { EmployeeRepository } from '@/domain/repositories/employee.repository';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
+import type { QuestTestRepository } from '@/domain/repositories/quest-test.repository';
 
 export class ListQuestsUseCase {
   constructor(
     private readonly employees: EmployeeRepository,
     private readonly characters: CharacterRepository,
     private readonly quests: QuestRepository,
+    private readonly tests: QuestTestRepository,
   ) {}
 
   async execute(cognitoSub: string): Promise<QuestDto[]> {
@@ -20,6 +22,17 @@ export class ListQuestsUseCase {
     if (!character) throw new DomainError(ERROR_CODES.CHARACTER_NOT_FOUND);
 
     const quests = await this.quests.listAssignedTo(character.id);
-    return quests.map(toQuestDto);
+
+    // テスト要件のあるクエストについて、ユーザーが既に合格しているかを並列に取得
+    const results = await Promise.all(
+      quests.map(async (q) => {
+        const dto = toQuestDto(q);
+        if (q.testRequirement !== 'NONE') {
+          dto.hasPassedTest = await this.tests.hasPassedAttempt(q.id, character.id);
+        }
+        return dto;
+      }),
+    );
+    return results;
   }
 }

@@ -7,6 +7,7 @@ import { HTTP_STATUS } from '@/constants/http-status';
 import { prisma } from '@/infrastructure/db/prisma.client';
 import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
 import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
+import { QuestTestPrismaRepository } from '@/infrastructure/repositories/quest-test.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 import { authMiddleware } from '@/presentation/middlewares/auth.middleware';
@@ -19,6 +20,7 @@ export const questRoutes = new Hono()
       new EmployeePrismaRepository(prisma),
       new CharacterPrismaRepository(prisma),
       new QuestPrismaRepository(prisma),
+      new QuestTestPrismaRepository(prisma),
     );
     const list = await usecase.execute(sub);
     return c.json(list, HTTP_STATUS.OK);
