@@ -8,6 +8,7 @@ import { characterRoutes } from '@/presentation/routes/characters.routes';
 import { devRoutes } from '@/presentation/routes/dev.routes';
 import { documentRoutes } from '@/presentation/routes/documents.routes';
 import { healthRoutes } from '@/presentation/routes/health.routes';
+import { questTestRoutes } from '@/presentation/routes/quest-tests.routes';
 import { questRoutes } from '@/presentation/routes/quests.routes';
 
 const base = new Hono()
@@ -16,6 +17,7 @@ const base = new Hono()
   .route('/characters', characterRoutes)
   .route('/quests', questRoutes)
   .route('/', documentRoutes)
+  .route('/', questTestRoutes)
   .route('/admin', adminRoutes);
 
 export const routes =

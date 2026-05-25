@@ -9,6 +9,7 @@ const domainErrorToStatus = (code: ErrorCode): HttpStatus => {
   switch (code) {
     case ERROR_CODES.CHARACTER_NOT_FOUND:
     case ERROR_CODES.QUEST_NOT_FOUND:
+    case ERROR_CODES.QUEST_TEST_NOT_FOUND:
     case ERROR_CODES.EMPLOYEE_NOT_FOUND:
     case ERROR_CODES.SKILL_NOT_FOUND:
     case ERROR_CODES.NOT_FOUND:

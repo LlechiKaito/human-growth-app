@@ -46,10 +46,11 @@ model Character {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  employee          Employee         @relation(fields: [employeeId], references: [id])
+  employee          Employee           @relation(fields: [employeeId], references: [id])
   quests            Quest[]
   characterSkills   CharacterSkill[]
-  uploadedDocuments QuestDocument[]  @relation("UploadedDocuments")
+  uploadedDocuments QuestDocument[]    @relation("UploadedDocuments")
+  testAttempts      QuestTestAttempt[]
 
   @@map("characters")
 }
@@ -125,8 +126,10 @@ model Quest {
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
 
-  assignedCharacter Character?      @relation(fields: [assignedCharacterId], references: [id])
+  assignedCharacter Character?         @relation(fields: [assignedCharacterId], references: [id])
   documents         QuestDocument[]
+  questions         QuestQuestion[]
+  testAttempts      QuestTestAttempt[]
 
   @@index([assignedCharacterId])
   @@index([status])
@@ -166,6 +169,58 @@ model QuestDocument {
   @@index([status])
   @@index([uploadedByCharacterId])
   @@map("quest_documents")
+}
+
+// -----------------------------------------------------------------------------
+//  QuestQuestion / QuestChoice — クエスト内テスト (クイズ) の設問と選択肢
+//  単一選択のみ。正解は isCorrect=true のものを 1 つ持つ。
+// -----------------------------------------------------------------------------
+model QuestQuestion {
+  id        String   @id @default(uuid())
+  questId   String   @map("quest_id")
+  text      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  quest   Quest         @relation(fields: [questId], references: [id], onDelete: Cascade)
+  choices QuestChoice[]
+
+  @@index([questId])
+  @@map("quest_questions")
+}
+
+model QuestChoice {
+  id         String  @id @default(uuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @default(0)
+
+  question QuestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("quest_choices")
+}
+
+// -----------------------------------------------------------------------------
+//  QuestTestAttempt — 受験記録。passed=true があれば完了ゲートを通過。
+// -----------------------------------------------------------------------------
+model QuestTestAttempt {
+  id          String   @id @default(uuid())
+  questId     String   @map("quest_id")
+  characterId String   @map("character_id")
+  score       Int      // 正解数
+  total       Int      // 設問数
+  passed      Boolean
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  quest     Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@index([questId, characterId])
+  @@index([characterId, passed])
+  @@map("quest_test_attempts")
 }
 
 // -----------------------------------------------------------------------------

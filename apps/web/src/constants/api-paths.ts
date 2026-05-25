@@ -15,4 +15,7 @@ export const API_PATHS = {
   ADMIN_DOCUMENTS_PENDING: '/api/admin/documents/pending',
   ADMIN_DOCUMENT_APPROVE: (id: string) => `/api/admin/documents/${id}/approve`,
   ADMIN_DOCUMENT_REJECT: (id: string) => `/api/admin/documents/${id}/reject`,
+  QUEST_TEST: (questId: string) => `/api/quests/${questId}/test`,
+  QUEST_TEST_ATTEMPT: (questId: string) => `/api/quests/${questId}/test/attempts`,
+  ADMIN_QUEST_TEST: (questId: string) => `/api/admin/quests/${questId}/test`,
 } as const;
