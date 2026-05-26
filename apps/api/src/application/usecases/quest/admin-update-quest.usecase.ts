@@ -15,6 +15,7 @@ export interface AdminUpdateQuestInput {
   assignedCharacterId?: string | null;
   documentRequirement?: QuestRequirement;
   testRequirement?: QuestRequirement;
+  videoRequirement?: QuestRequirement;
 }
 
 /**

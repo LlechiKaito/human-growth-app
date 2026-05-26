@@ -13,6 +13,7 @@ import { CharacterPrismaRepository } from '@/infrastructure/repositories/charact
 import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
 import { QuestDocumentPrismaRepository } from '@/infrastructure/repositories/quest-document.prisma.repository';
 import { QuestTestPrismaRepository } from '@/infrastructure/repositories/quest-test.prisma.repository';
+import { QuestVideoPrismaRepository } from '@/infrastructure/repositories/quest-video.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
 
 export class CompleteQuestUseCase {
@@ -25,6 +26,7 @@ export class CompleteQuestUseCase {
       const quests = new QuestPrismaRepository(tx as PrismaClient);
       const documents = new QuestDocumentPrismaRepository(tx as PrismaClient);
       const tests = new QuestTestPrismaRepository(tx as PrismaClient);
+      const videos = new QuestVideoPrismaRepository(tx as PrismaClient);
 
       const employee = await employees.findByCognitoSub(cognitoSub);
       if (!employee) throw new DomainError(ERROR_CODES.EMPLOYEE_NOT_FOUND);
@@ -50,6 +52,10 @@ export class CompleteQuestUseCase {
       if (quest.testRequirement === 'REQUIRED') {
         const passed = await tests.hasPassedAttempt(questId, character.id);
         if (!passed) throw new DomainError(ERROR_CODES.QUEST_TEST_REQUIRED);
+      }
+      if (quest.videoRequirement === 'REQUIRED') {
+        const viewed = await videos.hasViewed(questId, character.id);
+        if (!viewed) throw new DomainError(ERROR_CODES.QUEST_VIDEO_REQUIRED);
       }
 
       const oldLevel = character.level;

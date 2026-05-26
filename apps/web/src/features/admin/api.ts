@@ -10,6 +10,7 @@ export interface QuestUpsertInput {
   assignedCharacterId?: string | null;
   documentRequirement?: QuestRequirement;
   testRequirement?: QuestRequirement;
+  videoRequirement?: QuestRequirement;
 }
 
 export const adminListQuests = async (): Promise<QuestDto[]> => {

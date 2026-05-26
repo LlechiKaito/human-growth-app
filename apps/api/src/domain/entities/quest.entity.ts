@@ -14,6 +14,7 @@ export interface QuestProps {
   assignedCharacterId: string | null;
   documentRequirement: QuestRequirement;
   testRequirement: QuestRequirement;
+  videoRequirement: QuestRequirement;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,10 @@ export class Quest {
 
   get testRequirement(): QuestRequirement {
     return this.props.testRequirement;
+  }
+
+  get videoRequirement(): QuestRequirement {
+    return this.props.videoRequirement;
   }
 
   isCompleted(): boolean {

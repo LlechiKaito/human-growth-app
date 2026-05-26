@@ -4,6 +4,7 @@ import { DocumentUploader } from '@/features/document/components/DocumentUploade
 import { useQuestDocuments } from '@/features/document/hooks/useDocuments';
 import type { QuestDto, QuestRequirement } from '@/features/quest/api';
 import { TestModal } from '@/features/quest-test/components/TestModal';
+import { VideoModal } from '@/features/quest-video/components/VideoModal';
 
 const DIFFICULTY_COLOR: Record<QuestDto['difficulty'], string> = {
   EASY: 'text-rpg-xp',
@@ -34,14 +35,17 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
   const isCompleted = quest.status === 'COMPLETED';
   const showDocuments = quest.documentRequirement !== 'NONE';
   const showTest = quest.testRequirement !== 'NONE';
+  const showVideo = quest.videoRequirement !== 'NONE';
   const [testOpen, setTestOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   // documentRequirement=REQUIRED のとき、APPROVED な書類が無いと完了不可
   const docsQuery = useQuestDocuments(quest.id);
   const hasApprovedDoc = (docsQuery.data ?? []).some((d) => d.status === 'APPROVED');
   const docGateBlocked = quest.documentRequirement === 'REQUIRED' && !hasApprovedDoc;
   const testGateBlocked = quest.testRequirement === 'REQUIRED' && !quest.hasPassedTest;
+  const videoGateBlocked = quest.videoRequirement === 'REQUIRED' && !quest.hasViewedVideo;
 
-  const blocked = docGateBlocked || testGateBlocked;
+  const blocked = docGateBlocked || testGateBlocked || videoGateBlocked;
 
   return (
     <div
@@ -74,6 +78,13 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
                 テスト{quest.testRequirement === 'REQUIRED' ? '必須' : '任意'}
               </span>
             )}
+            {quest.videoRequirement !== 'NONE' && (
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-semibold ${REQUIREMENT_BADGE_CLASS[quest.videoRequirement]}`}
+              >
+                動画{quest.videoRequirement === 'REQUIRED' ? '必須' : '任意'}
+              </span>
+            )}
           </div>
           <h3 className="mt-1 font-semibold text-white">{quest.title}</h3>
           <p className="mt-1 text-sm text-gray-400">{quest.description}</p>
@@ -104,6 +115,11 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
               ※ テストに合格してください
             </p>
           )}
+          {videoGateBlocked && (
+            <p className="mt-1 text-xs text-rpg-accent">
+              ※ 動画を視聴してください
+            </p>
+          )}
         </>
       )}
       {showTest && !isCompleted && (
@@ -118,6 +134,19 @@ export const QuestCard = ({ quest, onComplete, isCompleting }: QuestCardProps) =
       )}
       {showTest && (
         <TestModal questId={quest.id} open={testOpen} onClose={() => setTestOpen(false)} />
+      )}
+      {showVideo && !isCompleted && (
+        <button
+          type="button"
+          onClick={() => setVideoOpen(true)}
+          className="mt-2 w-full rounded border border-blue-400 px-3 py-2 text-sm font-semibold text-blue-300 hover:bg-blue-400 hover:text-rpg-bg"
+          data-testid={`open-video-${quest.id}`}
+        >
+          {quest.hasViewedVideo ? '動画 (視聴済み、もう一度見る)' : '動画を見る'}
+        </button>
+      )}
+      {showVideo && (
+        <VideoModal questId={quest.id} open={videoOpen} onClose={() => setVideoOpen(false)} />
       )}
       {showDocuments && (
         <div className="mt-3">

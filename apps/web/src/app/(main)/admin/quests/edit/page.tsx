@@ -9,6 +9,7 @@ import {
   useAdminQuests,
   useUpdateAdminQuest,
 } from '@/features/admin/hooks/useAdminQuests';
+import { AdminVideoManager } from '@/features/quest-video/components/AdminVideoManager';
 
 /**
  * 編集画面の URL は /admin/quests/edit?id=<uuid>。
@@ -48,6 +49,7 @@ const Content = () => {
           assignedCharacterId: quest.assignedCharacterId,
           documentRequirement: quest.documentRequirement,
           testRequirement: quest.testRequirement,
+          videoRequirement: quest.videoRequirement,
         }}
         submitLabel="更新する"
         isPending={update.isPending}
@@ -66,6 +68,7 @@ const Content = () => {
           テスト (クイズ) の設問を編集する →
         </a>
       )}
+      {quest.videoRequirement !== 'NONE' && <AdminVideoManager questId={quest.id} />}
     </div>
   );
 };

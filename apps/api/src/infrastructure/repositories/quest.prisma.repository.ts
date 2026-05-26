@@ -19,6 +19,7 @@ type QuestRow = {
   assignedCharacterId: string | null;
   documentRequirement: QuestRequirement;
   testRequirement: QuestRequirement;
+  videoRequirement: QuestRequirement;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +60,7 @@ export class QuestPrismaRepository implements QuestRepository {
         assignedCharacterId: quest.assignedCharacterId,
         documentRequirement: quest.documentRequirement,
         testRequirement: quest.testRequirement,
+        videoRequirement: quest.videoRequirement,
       },
     });
     return this.toEntity(row);
@@ -90,6 +92,7 @@ export class QuestPrismaRepository implements QuestRepository {
       assignedCharacterId?: string | null;
       documentRequirement?: QuestRequirement;
       testRequirement?: QuestRequirement;
+      videoRequirement?: QuestRequirement;
     },
   ): Promise<Quest> {
     const row = await this.prisma.quest.update({ where: { id }, data: fields });
@@ -107,6 +110,7 @@ export class QuestPrismaRepository implements QuestRepository {
       assignedCharacterId: row.assignedCharacterId,
       documentRequirement: row.documentRequirement,
       testRequirement: row.testRequirement,
+      videoRequirement: row.videoRequirement,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

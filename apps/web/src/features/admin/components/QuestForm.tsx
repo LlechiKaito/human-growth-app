@@ -35,6 +35,9 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
   const [testRequirement, setTestRequirement] = useState<QuestRequirement>(
     initial?.testRequirement ?? 'NONE',
   );
+  const [videoRequirement, setVideoRequirement] = useState<QuestRequirement>(
+    initial?.videoRequirement ?? 'NONE',
+  );
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -46,6 +49,7 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
       assignedCharacterId,
       documentRequirement,
       testRequirement,
+      videoRequirement,
     });
   };
 
@@ -128,7 +132,7 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-gray-300">テスト (クイズ) — 機能本体は次リリース</span>
+          <span className="text-gray-300">テスト (クイズ)</span>
           <select
             value={testRequirement}
             onChange={(e) => setTestRequirement(e.target.value as QuestRequirement)}
@@ -141,11 +145,22 @@ export const QuestForm = ({ initial, submitLabel, onSubmit, isPending }: QuestFo
               </option>
             ))}
           </select>
-          {testRequirement === 'REQUIRED' && (
-            <span className="text-xs text-rpg-accent">
-              ⚠ テスト機能は未実装。REQUIRED に設定するとそのクエストは完了不可になります。
-            </span>
-          )}
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-gray-300">動画視聴</span>
+          <select
+            value={videoRequirement}
+            onChange={(e) => setVideoRequirement(e.target.value as QuestRequirement)}
+            className="rounded border border-gray-600 bg-rpg-bg px-3 py-2 text-white outline-none focus:border-rpg-accent"
+            data-testid="quest-video-requirement"
+          >
+            {REQUIREMENT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </label>
       </fieldset>
 
