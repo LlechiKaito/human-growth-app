@@ -15,12 +15,18 @@ export interface QuestDto {
   assignedCharacterId: string | null;
   documentRequirement: QuestRequirement;
   testRequirement: QuestRequirement;
+  videoRequirement: QuestRequirement;
   /**
    * ログイン中ユーザーがこのクエストのテストに合格済みかどうか。
    * - 管理者用エンドポイント (`/admin/quests`) では undefined
    * - 受講者用エンドポイント (`/quests`) でのみ true/false
    */
   hasPassedTest?: boolean;
+  /**
+   * ログイン中ユーザーがこのクエストの動画を視聴済みかどうか。
+   * 上記 `hasPassedTest` と同じく受講者用エンドポイントでのみ。
+   */
+  hasViewedVideo?: boolean;
 }
 
 export const toQuestDto = (q: Quest): QuestDto => ({
@@ -33,6 +39,7 @@ export const toQuestDto = (q: Quest): QuestDto => ({
   assignedCharacterId: q.assignedCharacterId,
   documentRequirement: q.documentRequirement,
   testRequirement: q.testRequirement,
+  videoRequirement: q.videoRequirement,
 });
 
 export interface CompleteQuestResultDto {

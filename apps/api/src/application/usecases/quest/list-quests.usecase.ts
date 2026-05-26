@@ -5,6 +5,7 @@ import type { CharacterRepository } from '@/domain/repositories/character.reposi
 import type { EmployeeRepository } from '@/domain/repositories/employee.repository';
 import type { QuestRepository } from '@/domain/repositories/quest.repository';
 import type { QuestTestRepository } from '@/domain/repositories/quest-test.repository';
+import type { QuestVideoRepository } from '@/domain/repositories/quest-video.repository';
 
 export class ListQuestsUseCase {
   constructor(
@@ -12,6 +13,7 @@ export class ListQuestsUseCase {
     private readonly characters: CharacterRepository,
     private readonly quests: QuestRepository,
     private readonly tests: QuestTestRepository,
+    private readonly videos: QuestVideoRepository,
   ) {}
 
   async execute(cognitoSub: string): Promise<QuestDto[]> {
@@ -23,12 +25,15 @@ export class ListQuestsUseCase {
 
     const quests = await this.quests.listAssignedTo(character.id);
 
-    // テスト要件のあるクエストについて、ユーザーが既に合格しているかを並列に取得
+    // 各要件についてユーザーの達成状況を並列取得
     const results = await Promise.all(
       quests.map(async (q) => {
         const dto = toQuestDto(q);
         if (q.testRequirement !== 'NONE') {
           dto.hasPassedTest = await this.tests.hasPassedAttempt(q.id, character.id);
+        }
+        if (q.videoRequirement !== 'NONE') {
+          dto.hasViewedVideo = await this.videos.hasViewed(q.id, character.id);
         }
         return dto;
       }),

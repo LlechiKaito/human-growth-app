@@ -13,6 +13,8 @@ export const ERROR_CODES = {
   QUEST_TEST_REQUIRED: 'QUEST_TEST_REQUIRED',
   QUEST_TEST_NOT_FOUND: 'QUEST_TEST_NOT_FOUND',
   QUEST_TEST_ANSWERS_INVALID: 'QUEST_TEST_ANSWERS_INVALID',
+  QUEST_VIDEO_REQUIRED: 'QUEST_VIDEO_REQUIRED',
+  QUEST_VIDEO_NOT_FOUND: 'QUEST_VIDEO_NOT_FOUND',
   SKILL_NOT_FOUND: 'SKILL_NOT_FOUND',
   EMPLOYEE_NOT_FOUND: 'EMPLOYEE_NOT_FOUND',
 } as const;
@@ -34,6 +36,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.QUEST_TEST_REQUIRED]: 'You must pass the test to complete this quest',
   [ERROR_CODES.QUEST_TEST_NOT_FOUND]: 'No test is configured for this quest',
   [ERROR_CODES.QUEST_TEST_ANSWERS_INVALID]: 'Submitted answers do not match the question set',
+  [ERROR_CODES.QUEST_VIDEO_REQUIRED]: 'You must watch the video to complete this quest',
+  [ERROR_CODES.QUEST_VIDEO_NOT_FOUND]: 'No video is configured for this quest',
   [ERROR_CODES.SKILL_NOT_FOUND]: 'Skill not found',
   [ERROR_CODES.EMPLOYEE_NOT_FOUND]: 'Employee not found',
 };

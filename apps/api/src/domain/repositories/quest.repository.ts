@@ -15,5 +15,6 @@ export interface QuestRepository {
     assignedCharacterId?: string | null;
     documentRequirement?: QuestRequirement;
     testRequirement?: QuestRequirement;
+    videoRequirement?: QuestRequirement;
   }): Promise<Quest>;
 }

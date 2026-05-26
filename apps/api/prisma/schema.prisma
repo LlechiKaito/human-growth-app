@@ -51,6 +51,7 @@ model Character {
   characterSkills   CharacterSkill[]
   uploadedDocuments QuestDocument[]    @relation("UploadedDocuments")
   testAttempts      QuestTestAttempt[]
+  videoViews        QuestVideoView[]
 
   @@map("characters")
 }
@@ -122,6 +123,7 @@ model Quest {
   assignedCharacterId  String?          @map("assigned_character_id")
   documentRequirement  QuestRequirement @default(NONE) @map("document_requirement")
   testRequirement      QuestRequirement @default(NONE) @map("test_requirement")
+  videoRequirement     QuestRequirement @default(NONE) @map("video_requirement")
   completedAt          DateTime?        @map("completed_at")
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
@@ -130,6 +132,8 @@ model Quest {
   documents         QuestDocument[]
   questions         QuestQuestion[]
   testAttempts      QuestTestAttempt[]
+  video             QuestVideo?
+  videoViews        QuestVideoView[]
 
   @@index([assignedCharacterId])
   @@index([status])
@@ -221,6 +225,39 @@ model QuestTestAttempt {
   @@index([questId, characterId])
   @@index([characterId, passed])
   @@map("quest_test_attempts")
+}
+
+// -----------------------------------------------------------------------------
+//  QuestVideo / QuestVideoView — クエストに紐づく動画 1 本と、視聴記録
+//  ファイル本体は S3 (DOCUMENTS_BUCKET の videos/ プレフィックス) に保存。
+// -----------------------------------------------------------------------------
+model QuestVideo {
+  id                  String   @id @default(uuid())
+  questId             String   @unique @map("quest_id")
+  s3Key               String   @unique @map("s3_key")
+  filename            String
+  mimeType            String   @map("mime_type")
+  sizeBytes           Int      @map("size_bytes")
+  uploadedByEmployeeId String  @map("uploaded_by_employee_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@map("quest_videos")
+}
+
+model QuestVideoView {
+  questId     String   @map("quest_id")
+  characterId String   @map("character_id")
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  quest     Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@id([questId, characterId])
+  @@index([characterId])
+  @@map("quest_video_views")
 }
 
 // -----------------------------------------------------------------------------

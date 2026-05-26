@@ -15,11 +15,14 @@ export interface QuestDto {
   assignedCharacterId: string | null;
   documentRequirement: QuestRequirement;
   testRequirement: QuestRequirement;
+  videoRequirement: QuestRequirement;
   /**
    * `/api/quests` のみで返る。`/api/admin/quests` では undefined。
    * testRequirement === 'NONE' のときも undefined。
    */
   hasPassedTest?: boolean;
+  /** 受講者用エンドポイントでのみ。videoRequirement === 'NONE' のときは undefined。 */
+  hasViewedVideo?: boolean;
 }
 
 export interface CompleteQuestResult {

@@ -16,6 +16,7 @@ export interface AdminCreateQuestInput {
   assignedCharacterId?: string | null;
   documentRequirement?: QuestRequirement;
   testRequirement?: QuestRequirement;
+  videoRequirement?: QuestRequirement;
 }
 
 /**
@@ -36,6 +37,7 @@ export class AdminCreateQuestUseCase {
       assignedCharacterId: input.assignedCharacterId ?? null,
       documentRequirement: input.documentRequirement ?? 'NONE',
       testRequirement: input.testRequirement ?? 'NONE',
+      videoRequirement: input.videoRequirement ?? 'NONE',
       createdAt: now,
       updatedAt: now,
     });

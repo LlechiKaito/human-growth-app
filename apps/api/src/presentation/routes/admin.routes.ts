@@ -11,15 +11,22 @@ import { AdminListQuestsUseCase } from '@/application/usecases/quest/admin-list-
 import { AdminUpdateQuestUseCase } from '@/application/usecases/quest/admin-update-quest.usecase';
 import { AdminGetQuestTestUseCase } from '@/application/usecases/quest-test/admin-get-quest-test.usecase';
 import { AdminUpsertQuestTestUseCase } from '@/application/usecases/quest-test/admin-upsert-quest-test.usecase';
+import { AdminDeleteVideoUseCase } from '@/application/usecases/quest-video/admin-delete-video.usecase';
+import { AdminGetVideoUseCase } from '@/application/usecases/quest-video/admin-get-video.usecase';
+import { AdminUploadVideoUseCase } from '@/application/usecases/quest-video/admin-upload-video.usecase';
 import { toQuestDto } from '@/application/dto/quest.dto';
+import { ERROR_CODES } from '@/constants/error-codes';
 import { HTTP_STATUS } from '@/constants/http-status';
+import { DomainError } from '@/domain/errors/domain-errors';
 
 import { prisma } from '@/infrastructure/db/prisma.client';
 import { CharacterPrismaRepository } from '@/infrastructure/repositories/character.prisma.repository';
 import { EmployeePrismaRepository } from '@/infrastructure/repositories/employee.prisma.repository';
 import { QuestDocumentPrismaRepository } from '@/infrastructure/repositories/quest-document.prisma.repository';
 import { QuestTestPrismaRepository } from '@/infrastructure/repositories/quest-test.prisma.repository';
+import { QuestVideoPrismaRepository } from '@/infrastructure/repositories/quest-video.prisma.repository';
 import { QuestPrismaRepository } from '@/infrastructure/repositories/quest.prisma.repository';
+import { getStorageService } from '@/infrastructure/storage';
 
 import { adminMiddleware } from '@/presentation/middlewares/admin.middleware';
 import { authMiddleware } from '@/presentation/middlewares/auth.middleware';
@@ -35,6 +42,7 @@ const createSchema = z.object({
   assignedCharacterId: z.string().uuid().nullable().optional(),
   documentRequirement: REQUIREMENT.default('NONE'),
   testRequirement: REQUIREMENT.default('NONE'),
+  videoRequirement: REQUIREMENT.default('NONE'),
 });
 
 const updateSchema = createSchema.partial();
@@ -61,6 +69,7 @@ const quests = () => new QuestPrismaRepository(prisma);
 const documents = () => new QuestDocumentPrismaRepository(prisma);
 const employees = () => new EmployeePrismaRepository(prisma);
 const tests = () => new QuestTestPrismaRepository(prisma);
+const videos = () => new QuestVideoPrismaRepository(prisma);
 
 export const adminRoutes = new Hono()
   .use('*', authMiddleware)
@@ -129,4 +138,42 @@ export const adminRoutes = new Hono()
     const usecase = new AdminUpsertQuestTestUseCase(quests(), tests());
     const result = await usecase.execute(id, input);
     return c.json(result, HTTP_STATUS.OK);
+  })
+  .get('/quests/:id/video', async (c) => {
+    const id = c.req.param('id');
+    const usecase = new AdminGetVideoUseCase(videos(), quests());
+    const result = await usecase.execute(id);
+    return c.json(result, HTTP_STATUS.OK);
+  })
+  .post('/quests/:id/video', async (c) => {
+    const sub = c.get('cognitoSub');
+    const questId = c.req.param('id');
+    const form = await c.req.parseBody();
+    const file = form['file'];
+    if (!file || typeof file === 'string' || !(file instanceof File)) {
+      throw new DomainError(
+        ERROR_CODES.VALIDATION_FAILED,
+        'file field is required (multipart/form-data)',
+      );
+    }
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    const usecase = new AdminUploadVideoUseCase(
+      getStorageService(),
+      videos(),
+      quests(),
+      employees(),
+    );
+    const result = await usecase.execute(sub, {
+      questId,
+      filename: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      body: buffer,
+    });
+    return c.json(result, HTTP_STATUS.CREATED);
+  })
+  .delete('/quests/:id/video', async (c) => {
+    const id = c.req.param('id');
+    const usecase = new AdminDeleteVideoUseCase(getStorageService(), videos(), quests());
+    await usecase.execute(id);
+    return c.body(null, 204);
   });

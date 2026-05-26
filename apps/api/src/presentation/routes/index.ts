@@ -9,6 +9,7 @@ import { devRoutes } from '@/presentation/routes/dev.routes';
 import { documentRoutes } from '@/presentation/routes/documents.routes';
 import { healthRoutes } from '@/presentation/routes/health.routes';
 import { questTestRoutes } from '@/presentation/routes/quest-tests.routes';
+import { questVideoRoutes } from '@/presentation/routes/quest-videos.routes';
 import { questRoutes } from '@/presentation/routes/quests.routes';
 
 const base = new Hono()
@@ -18,6 +19,7 @@ const base = new Hono()
   .route('/quests', questRoutes)
   .route('/', documentRoutes)
   .route('/', questTestRoutes)
+  .route('/', questVideoRoutes)
   .route('/admin', adminRoutes);
 
 export const routes =

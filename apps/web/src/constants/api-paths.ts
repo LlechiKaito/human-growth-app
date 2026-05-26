@@ -18,4 +18,7 @@ export const API_PATHS = {
   QUEST_TEST: (questId: string) => `/api/quests/${questId}/test`,
   QUEST_TEST_ATTEMPT: (questId: string) => `/api/quests/${questId}/test/attempts`,
   ADMIN_QUEST_TEST: (questId: string) => `/api/admin/quests/${questId}/test`,
+  QUEST_VIDEO: (questId: string) => `/api/quests/${questId}/video`,
+  QUEST_VIDEO_VIEW: (questId: string) => `/api/quests/${questId}/video/view`,
+  ADMIN_QUEST_VIDEO: (questId: string) => `/api/admin/quests/${questId}/video`,
 } as const;
