@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { ROUTES } from '@/constants/routes';
@@ -61,12 +62,12 @@ const Content = () => {
         }
       />
       {quest.testRequirement !== 'NONE' && (
-        <a
+        <Link
           href={ROUTES.ADMIN_QUEST_TEST_EDIT(quest.id)}
           className="self-start rounded border border-rpg-accent px-3 py-2 text-sm font-semibold text-rpg-accent hover:bg-rpg-accent hover:text-rpg-bg"
         >
           テスト (クイズ) の設問を編集する →
-        </a>
+        </Link>
       )}
       {quest.videoRequirement !== 'NONE' && <AdminVideoManager questId={quest.id} />}
     </div>

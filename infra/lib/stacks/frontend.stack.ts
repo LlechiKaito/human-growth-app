@@ -34,11 +34,36 @@ export class FrontendStack extends Stack {
 
     const apiHost = props.apiServiceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+    // Next.js static export (`output: 'export'` + `trailingSlash: true`) は
+    // `out/foo/index.html` を出力するが、CloudFront は OAC 経由で S3 にアクセスする際に
+    // ディレクトリインデックスを自動解決しない (S3 website endpoint は別物)。
+    // CloudFront Function で URI を `/foo/index.html` に書き換える。
+    const rewriteFunction = new cloudfront.Function(this, 'RewriteToIndexHtml', {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var req = event.request;
+  var uri = req.uri;
+  if (uri.endsWith('/')) {
+    req.uri = uri + 'index.html';
+  } else if (!uri.includes('.')) {
+    req.uri = uri + '/index.html';
+  }
+  return req;
+}
+      `),
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        functionAssociations: [
+          {
+            function: rewriteFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       additionalBehaviors: {
         '/api/*': {
