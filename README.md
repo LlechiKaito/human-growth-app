@@ -76,16 +76,16 @@ npm run typecheck --workspaces --if-present            # 全 workspace 型チェ
 詳細は [`docs/deploy.md`](docs/deploy.md)。
 
 ```bash
-npm run release
+cd infra && npm run deploy
 ```
 
 これだけで:
-1. Next.js 静的書き出し
-2. CDK が全 6 スタックを deploy(DockerImageAsset で API イメージビルド + ECR push 自動)
+1. Next.js 静的書き出し(`build:web`)
+2. CDK が全スタックを反映(DockerImageAsset で API イメージビルド + ECR push 自動)
 3. App Runner 起動時に `prisma db push` でマイグレーション自動実行
 4. S3 sync + CloudFront invalidation
 
-**デプロイは人間が実行する方針**(`npm run release` は手動トリガ、CI は synth まで)。
+**人間が実行する方針**(`npm run deploy` は手動トリガ、CI は synth まで)。
 
 ## 本番アーキテクチャ(POC 構成)
 

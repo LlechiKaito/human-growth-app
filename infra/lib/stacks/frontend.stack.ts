@@ -16,8 +16,8 @@ interface FrontendStackProps extends StackProps {
  * S3 (静的 Next.js) + CloudFront + BucketDeployment (cdk deploy で apps/web/out を S3 sync)
  * /* → S3 / /api/* → App Runner
  *
- * 前提: cdk deploy 前に `cd apps/web && NEXT_OUTPUT=export NEXT_PUBLIC_API_BASE_URL='' npm run build`
- * を実行して apps/web/out/ が存在すること。プロジェクトルートの `npm run release` で一括実行可能。
+ * 前提: cdk deploy 前に apps/web/out が存在すること。
+ * `npm -w infra run deploy` (= build:export + cdk deploy --all) で一括実行できる。
  */
 export class FrontendStack extends Stack {
   readonly distribution: cloudfront.Distribution;
@@ -34,11 +34,36 @@ export class FrontendStack extends Stack {
 
     const apiHost = props.apiServiceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+    // Next.js static export (`output: 'export'` + `trailingSlash: true`) は
+    // `out/foo/index.html` を出力するが、CloudFront は OAC 経由で S3 にアクセスする際に
+    // ディレクトリインデックスを自動解決しない (S3 website endpoint は別物)。
+    // CloudFront Function で URI を `/foo/index.html` に書き換える。
+    const rewriteFunction = new cloudfront.Function(this, 'RewriteToIndexHtml', {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var req = event.request;
+  var uri = req.uri;
+  if (uri.endsWith('/')) {
+    req.uri = uri + 'index.html';
+  } else if (!uri.includes('.')) {
+    req.uri = uri + '/index.html';
+  }
+  return req;
+}
+      `),
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        functionAssociations: [
+          {
+            function: rewriteFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       additionalBehaviors: {
         '/api/*': {
@@ -70,7 +95,6 @@ export class FrontendStack extends Stack {
       destinationBucket: bucket,
       distribution: this.distribution,
       distributionPaths: ['/*'],
-      // dev のサイズはせいぜい数 MB なので default memory で足りる
     });
 
     new CfnOutput(this, 'DistributionDomain', {

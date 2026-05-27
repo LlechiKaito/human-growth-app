@@ -5,6 +5,8 @@
   "scripts": {
     "synth": "cdk synth",
     "diff": "cdk diff",
+    "build:web": "npm -w @human-growth/web run build:export",
+    "deploy": "npm run build:web && cdk deploy --all --require-approval broadening",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint lib bin"

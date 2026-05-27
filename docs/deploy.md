@@ -48,14 +48,18 @@ cd infra && npx cdk bootstrap aws://<ACCOUNT_ID>/ap-northeast-1
 
 ```
 cd infra
-npx cdk deploy --all --require-approval broadening
+npm run deploy
 ```
 
+`npm run deploy` = `build:web` (Next.js 静的書き出し) → `cdk deploy --all`。
+これだけで web のビルドからインフラ反映まで完結する。
+
 CDK が以下を自動で行う:
-1. 必要な順序で全 6 スタックをデプロイ
+1. 必要な順序で全スタックを反映
 2. `compute` スタックで `docker/api.Dockerfile` をビルド (`linux/amd64`, `target: prod`)
 3. cdk-staging ECR に push
 4. その image URI で App Runner Service を作成
+5. `frontend` スタックで `apps/web/out` を S3 へ sync + CloudFront invalidation
 
 **所要時間**: 約 **15〜25 分** (RDS が一番遅い ~10分、App Runner が ~5分)。
 

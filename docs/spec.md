@@ -192,7 +192,7 @@ UI は `leveledUp=true` のときに大きいトーストを表示。
 - [x] レベルアップ時に専用 UI 演出が出る
 - [x] スキルツリーが acquired / locked で色分け表示される
 - [x] CI が全部緑 (lint + typecheck + unit + integration + E2E + cdk synth)
-- [x] `npm run release` 一発で AWS デプロイが完結する
+- [x] `cd infra && npm run deploy` 一発で AWS への反映が完結する
 
 ## 10. 非機能要件
 
