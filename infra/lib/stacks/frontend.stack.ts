@@ -16,8 +16,8 @@ interface FrontendStackProps extends StackProps {
  * S3 (静的 Next.js) + CloudFront + BucketDeployment (cdk deploy で apps/web/out を S3 sync)
  * /* → S3 / /api/* → App Runner
  *
- * 前提: cdk deploy 前に `cd apps/web && NEXT_OUTPUT=export NEXT_PUBLIC_API_BASE_URL='' npm run build`
- * を実行して apps/web/out/ が存在すること。プロジェクトルートの `npm run release` で一括実行可能。
+ * 前提: cdk deploy 前に apps/web/out が存在すること。
+ * `npm -w infra run deploy` (= build:export + cdk deploy --all) で一括実行できる。
  */
 export class FrontendStack extends Stack {
   readonly distribution: cloudfront.Distribution;
@@ -95,7 +95,6 @@ function handler(event) {
       destinationBucket: bucket,
       distribution: this.distribution,
       distributionPaths: ['/*'],
-      // dev のサイズはせいぜい数 MB なので default memory で足りる
     });
 
     new CfnOutput(this, 'DistributionDomain', {

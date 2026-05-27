@@ -179,7 +179,7 @@ LocalAuthProvider 利用時はメモリ上にしかユーザーが残らない�
 
 ## 9. デプロイ
 
-`docs/deploy.md` を参照。**`npm run release` 1 コマンド** で AWS にデプロイされる(人間が実行)。
+`docs/deploy.md` を参照。**`cd infra && npm run deploy` 1 コマンド** で AWS に反映される(人間が実行)。
 
 ## 10. トラブルシューティング
 

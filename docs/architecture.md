@@ -149,14 +149,14 @@ Cost Explorer で `Project + Service` でブレイクダウン可能。
 | E2E (Playwright via docker compose) | docker compose 起動 → Playwright プロファイル実行 |
 | CDK synth | `npm run web:build:export` 後に `cdk synth` |
 
-CI は **テストと synth まで**。実際の `cdk deploy` は人間が `npm run release` で実行(CD 自動化はしない方針)。
+CI は **テストと synth まで**。実際の反映は人間が `cd infra && npm run deploy` で実行(CD 自動化はしない方針)。
 
 ## デプロイ (1コマンド)
 
 `docs/deploy.md` 参照。要約:
 
 ```bash
-npm run release
+cd infra && npm run deploy
 ```
 
 これだけで:
